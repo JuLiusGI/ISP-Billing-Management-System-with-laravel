@@ -6,8 +6,8 @@ XAMPP (Apache + MariaDB/MySQL) stack.
 
 > **Project status: in development.** Authentication, role-based access control,
 > staff user management, customers, internet plans, subscriptions, the billing
-> engine, invoice management and payment processing are working on the full
-> schema. The remaining modules (receipts, expenses, reports, analytics, audit
+> engine, invoice management, payment processing and receipts are working on
+> the full schema. The remaining modules (expenses, reports, analytics, audit
 > logs and settings) are not implemented yet.
 
 ## Requirements
@@ -345,6 +345,35 @@ what stops the money counting, and the invoices it touched are recalculated so
 their balances come back. Reversing needs `payments.reverse`, a separate
 ability from `payments.create` — a cashier records money; undoing it is an
 accounting correction.
+
+## Receipts
+
+A receipt acknowledges money received, so exactly one belongs to each payment —
+the unique index on `payment_id` enforces it. Receipts are issued explicitly
+from the payment page rather than automatically, and only for a **completed**
+payment: a reversed one is money the ISP no longer holds, so there is nothing
+to acknowledge.
+
+Issuing is idempotent at the service level. The button disappears once a
+receipt exists and the route refuses a second attempt, but if two requests slip
+past that check together the second returns the receipt the first created
+instead of failing.
+
+Receipt numbers follow `{billing.receipt_prefix}-YYYY-NNNNNN`, defaulting to
+`OR`.
+
+The receipt carries everything MASTER_SPEC §14 asks for: ISP name and address,
+customer name and account number, receipt number, payment reference and date,
+the invoices it was applied to with the balance left on each, amount paid,
+payment method, and both who received and who issued it. Anything not applied
+to an invoice is shown as credit held on the account.
+
+A payment reversed *after* its receipt was issued keeps the receipt — it was
+issued, and the record stands — but the document is stamped **VOID** on screen
+and in print.
+
+The on-screen and printed versions render the same partial, so the two can
+never show different figures.
 
 ## Testing
 

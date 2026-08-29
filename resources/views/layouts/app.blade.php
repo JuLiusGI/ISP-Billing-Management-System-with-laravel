@@ -139,6 +139,14 @@
                             <i class="bi bi-clock-history"></i> Payment History
                         </a>
                     </li>
+                    @can('receipts.view')
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('receipts.*') ? 'active' : '' }}"
+                               href="{{ route('receipts.index') }}">
+                                <i class="bi bi-receipt-cutoff"></i> Receipts
+                            </a>
+                        </li>
+                    @endcan
                 </ul>
             @endcan
 

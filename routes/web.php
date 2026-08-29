@@ -10,6 +10,7 @@ use App\Http\Controllers\InternetPlanController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ReceiptController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\UserController;
@@ -114,6 +115,16 @@ Route::middleware(['auth', 'active'])->group(function (): void {
         Route::post('{payment}/allocate', 'allocate')->middleware('permission:payments.create')->name('allocate');
         Route::patch('{payment}/reverse', 'reverse')->middleware('permission:payments.reverse')->name('reverse');
     });
+
+    Route::controller(ReceiptController::class)->prefix('receipts')->name('receipts.')->group(function (): void {
+        Route::get('/', 'index')->middleware('permission:receipts.view')->name('index');
+        Route::get('{receipt}', 'show')->middleware('permission:receipts.view')->name('show');
+        Route::get('{receipt}/print', 'print')->middleware('permission:receipts.view')->name('print');
+    });
+
+    Route::post('payments/{payment}/receipt', [ReceiptController::class, 'store'])
+        ->middleware('permission:receipts.issue')
+        ->name('payments.receipt');
 
     // Administration. Abilities are enforced here as well as in the form
     // requests, so a hidden sidebar link is never the only thing stopping a

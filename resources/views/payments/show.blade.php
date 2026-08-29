@@ -44,6 +44,25 @@
                     &middot; {{ $payment->payment_method->label() }}
                 </div>
             </div>
+
+            <div class="d-flex gap-2">
+                @if ($payment->receipt)
+                    <a href="{{ route('receipts.show', $payment->receipt) }}" class="btn btn-sm btn-light border">
+                        <i class="bi bi-receipt-cutoff me-1"></i> Receipt {{ $payment->receipt->receipt_number }}
+                    </a>
+                    <a href="{{ route('receipts.print', $payment->receipt) }}" target="_blank"
+                       class="btn btn-sm btn-primary">
+                        <i class="bi bi-printer me-1"></i> Print
+                    </a>
+                @elseif (auth()->user()->can('issueReceipt', $payment))
+                    <form method="POST" action="{{ route('payments.receipt', $payment) }}">
+                        @csrf
+                        <button type="submit" class="btn btn-sm btn-primary">
+                            <i class="bi bi-receipt-cutoff me-1"></i> Issue receipt
+                        </button>
+                    </form>
+                @endif
+            </div>
         </div>
     </div>
 
