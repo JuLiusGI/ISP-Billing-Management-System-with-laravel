@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
+use App\Http\Controllers\BillingCycleController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InternetPlanController;
@@ -82,6 +83,14 @@ Route::middleware(['auth', 'active'])->group(function (): void {
         Route::patch('{subscription}/status', 'changeStatus')
             ->middleware('permission:subscriptions.manage_status')
             ->name('status');
+    });
+
+    Route::controller(BillingCycleController::class)->prefix('billing')->name('billing.')->group(function (): void {
+        Route::get('/', 'index')->middleware('permission:billing.view')->name('index');
+        Route::post('/', 'store')->middleware('permission:billing.generate')->name('store');
+        Route::get('{cycle}', 'show')->middleware('permission:billing.view')->name('show');
+        Route::post('{cycle}/generate', 'generate')->middleware('permission:billing.generate')->name('generate');
+        Route::post('mark-overdue', 'markOverdue')->middleware('permission:billing.generate')->name('mark-overdue');
     });
 
     // Administration. Abilities are enforced here as well as in the form

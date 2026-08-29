@@ -66,6 +66,18 @@
                 </ul>
             @endcan
 
+            @can('billing.view')
+                <div class="app-sidebar__heading">Billing</div>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('billing.*') ? 'active' : '' }}"
+                           href="{{ route('billing.index') }}">
+                            <i class="bi bi-calendar3"></i> Billing Cycles
+                        </a>
+                    </li>
+                </ul>
+            @endcan
+
             @canany(['plans.view', 'subscriptions.view'])
                 <div class="app-sidebar__heading">Internet Services</div>
                 <ul class="nav flex-column">

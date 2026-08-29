@@ -5,10 +5,10 @@ with Laravel 12, Blade, Bootstrap 5 and vanilla JavaScript, targeting a local
 XAMPP (Apache + MariaDB/MySQL) stack.
 
 > **Project status: in development.** Authentication, role-based access control,
-> staff user management, customers, internet plans and subscriptions are working
-> on the full billing schema. The remaining modules (billing,
-> invoices, payments, receipts, expenses, reports, analytics, audit logs and
-> settings) are not implemented yet.
+> staff user management, customers, internet plans, subscriptions and the
+> billing engine are working on the full schema. The remaining modules
+> (invoice management, payments, receipts, expenses, reports, analytics, audit
+> logs and settings) are not implemented yet.
 
 ## Requirements
 
@@ -243,6 +243,49 @@ before, pending otherwise.
 Two abilities separate the concerns: `subscriptions.update` edits the record
 (pricing, dates, connection details) and `subscriptions.manage_status` changes
 service state. Billing staff hold the first, technicians the second.
+
+## Billing engine
+
+Billing runs per month. Opening a cycle for a month creates a `billing_cycles`
+row (find-or-create, so reopening is harmless); generating it issues one
+invoice per billable subscription.
+
+**Invoice arithmetic**, all in bcmath on strings — never floats:
+
+```
+subtotal       = Σ (item.quantity × item.unit_price)
+discount_total = Σ item.discount_amount + invoice-level discount
+charges_total  = invoice-level additional charges
+taxable base   = subtotal − discount_total + charges_total   (floored at 0)
+tax_total      = taxable base × rate, when tax is enabled
+total_amount   = taxable base + tax_total
+balance_due    = total_amount − allocated payments           (floored at 0)
+```
+
+Each item's `line_total` is `(quantity × unit_price) − its discount`, so the
+lines and the header always agree. `InvoiceService::recalculate()` is the only
+place this arithmetic lives and is safe to run repeatedly.
+
+**Generation is safe to run twice.** A subscription already invoiced for the
+period is skipped, and the unique index on
+`(subscription_id, billing_period_start)` is the backstop if two runs race —
+a duplicate is counted as skipped rather than crashing the batch. Only *active*
+subscriptions that started on or before the period ends are billed.
+
+**Dates.** The invoice date is the subscription's billing day clamped into the
+month, so a line billed on the 31st still bills in February. The due date is
+the invoice date plus `billing.grace_period_days`.
+
+**The installation fee rides on the first invoice only**; later invoices are
+the monthly service charge alone.
+
+Only completed payments count toward `amount_paid` — reversing a payment
+restores the balance. Cancelling an invoice is refused while payments are
+applied to it; reverse those first. Financial rows are never deleted.
+
+Configurable values (invoice prefix, grace period, tax on/off and rate) are
+read through `SettingsService` from `system_settings`, never hard-coded. The
+screen for editing them arrives with the settings phase.
 
 ## Testing
 
