@@ -30,6 +30,8 @@ class DatabaseSeeder extends Seeder
             // Starting data. Each skips itself if its table is already populated.
             InternetPlanSeeder::class,
             CustomerSeeder::class,
+            // Depends on plans and customers already existing.
+            SubscriptionSeeder::class,
         ]);
     }
 }

@@ -5,8 +5,8 @@ with Laravel 12, Blade, Bootstrap 5 and vanilla JavaScript, targeting a local
 XAMPP (Apache + MariaDB/MySQL) stack.
 
 > **Project status: in development.** Authentication, role-based access control,
-> staff user management, customers and internet plans are working on top of the
-> full billing schema. The remaining modules (subscriptions, billing,
+> staff user management, customers, internet plans and subscriptions are working
+> on the full billing schema. The remaining modules (billing,
 > invoices, payments, receipts, expenses, reports, analytics, audit logs and
 > settings) are not implemented yet.
 
@@ -207,6 +207,42 @@ Retiring a plan means **deactivating** it, which hides it from new signups and
 leaves every existing subscription and invoice alone. A plan that has ever been
 subscribed to cannot be deleted at all, because its subscriptions and invoices
 name it in their history.
+
+## Subscriptions
+
+A subscription is a customer on a plan: it carries the agreed rate, any standing
+discount, the billing day, and the connection details (type, PPPoE username,
+static IP).
+
+**The rate is copied, not referenced.** Creating a subscription copies the
+plan's price into `subscriptions.monthly_rate`, where it stays editable — a
+negotiated rate is stored as agreed and survives any later repricing of the
+plan.
+
+Service status moves through a state machine, not a free-form field:
+
+```
+pending   → active, cancelled
+active    → suspended, expired, cancelled
+suspended → active, expired, cancelled
+expired   → active, cancelled
+cancelled → (terminal)
+```
+
+The allowed moves live on the `SubscriptionStatus` enum, so the buttons the UI
+offers and the transitions the server accepts come from one definition, and
+posting an illegal move directly is refused. Status is not editable on the
+subscription form for the same reason: it only moves through the status action,
+so **every change writes a `service_status_logs` entry** with its reason, who
+made it, and whether it was automatic.
+
+Each change also reconciles the customer's `connection_status`: connected while
+any line is active, disconnected once none are but one has been activated
+before, pending otherwise.
+
+Two abilities separate the concerns: `subscriptions.update` edits the record
+(pricing, dates, connection details) and `subscriptions.manage_status` changes
+service state. Billing staff hold the first, technicians the second.
 
 ## Testing
 

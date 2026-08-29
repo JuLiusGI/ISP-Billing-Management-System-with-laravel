@@ -8,6 +8,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InternetPlanController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -69,6 +70,18 @@ Route::middleware(['auth', 'active'])->group(function (): void {
         Route::put('{plan}', 'update')->middleware('permission:plans.update')->name('update');
         Route::patch('{plan}/toggle', 'toggle')->middleware('permission:plans.update')->name('toggle');
         Route::delete('{plan}', 'destroy')->middleware('permission:plans.delete')->name('destroy');
+    });
+
+    Route::controller(SubscriptionController::class)->prefix('subscriptions')->name('subscriptions.')->group(function (): void {
+        Route::get('/', 'index')->middleware('permission:subscriptions.view')->name('index');
+        Route::get('create', 'create')->middleware('permission:subscriptions.create')->name('create');
+        Route::post('/', 'store')->middleware('permission:subscriptions.create')->name('store');
+        Route::get('{subscription}', 'show')->middleware('permission:subscriptions.view')->name('show');
+        Route::get('{subscription}/edit', 'edit')->middleware('permission:subscriptions.update')->name('edit');
+        Route::put('{subscription}', 'update')->middleware('permission:subscriptions.update')->name('update');
+        Route::patch('{subscription}/status', 'changeStatus')
+            ->middleware('permission:subscriptions.manage_status')
+            ->name('status');
     });
 
     // Administration. Abilities are enforced here as well as in the form

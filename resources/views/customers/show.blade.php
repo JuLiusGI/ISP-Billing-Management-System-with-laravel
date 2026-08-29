@@ -163,20 +163,35 @@
 
             {{-- Internet service --}}
             <div class="tab-pane fade" id="tab-service" role="tabpanel">
+                @can('subscriptions.create')
+                    <div class="d-flex justify-content-end mb-2">
+                        <a href="{{ route('subscriptions.create', ['customer' => $customer->id]) }}"
+                           class="btn btn-sm btn-primary">
+                            <i class="bi bi-plus-lg me-1"></i> Add subscription
+                        </a>
+                    </div>
+                @endcan
+
                 @forelse ($customer->subscriptions as $subscription)
                     <div class="border rounded p-3 mb-2">
                         <div class="d-flex justify-content-between align-items-start">
                             <div>
-                                <div class="fw-medium">{{ $subscription->internetPlan->name }}</div>
-                                <div class="small text-secondary">{{ $subscription->internetPlan->speed_label }}</div>
+                                <a href="{{ route('subscriptions.show', $subscription) }}"
+                                   class="fw-medium text-decoration-none">
+                                    {{ $subscription->internetPlan->name }}
+                                </a>
+                                <div class="small text-secondary">
+                                    {{ $subscription->internetPlan->speed_label }}
+                                    &middot; <code>{{ $subscription->subscription_code }}</code>
+                                </div>
                             </div>
                             <span class="badge {{ $subscription->status->badgeClass() }}">
                                 {{ $subscription->status->label() }}
                             </span>
                         </div>
                         <dl class="row mb-0 small mt-2">
-                            <dt class="col-5 col-md-3 text-secondary fw-normal">Monthly rate</dt>
-                            <dd class="col-7 col-md-3">&#8369;{{ number_format((float) $subscription->monthly_rate, 2) }}</dd>
+                            <dt class="col-5 col-md-3 text-secondary fw-normal">Billed monthly</dt>
+                            <dd class="col-7 col-md-3">&#8369;{{ number_format((float) $subscription->net_monthly_rate, 2) }}</dd>
                             <dt class="col-5 col-md-3 text-secondary fw-normal">Billing day</dt>
                             <dd class="col-7 col-md-3">{{ $subscription->billing_day }}</dd>
                         </dl>

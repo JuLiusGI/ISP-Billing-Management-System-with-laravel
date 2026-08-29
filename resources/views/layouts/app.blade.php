@@ -66,17 +66,27 @@
                 </ul>
             @endcan
 
-            @can('plans.view')
+            @canany(['plans.view', 'subscriptions.view'])
                 <div class="app-sidebar__heading">Internet Services</div>
                 <ul class="nav flex-column">
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('plans.*') ? 'active' : '' }}"
-                           href="{{ route('plans.index') }}">
-                            <i class="bi bi-diagram-3"></i> Internet Plans
-                        </a>
-                    </li>
+                    @can('plans.view')
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('plans.*') ? 'active' : '' }}"
+                               href="{{ route('plans.index') }}">
+                                <i class="bi bi-diagram-3"></i> Internet Plans
+                            </a>
+                        </li>
+                    @endcan
+                    @can('subscriptions.view')
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('subscriptions.*') && ! request('status') ? 'active' : '' }}"
+                               href="{{ route('subscriptions.index') }}">
+                                <i class="bi bi-wifi"></i> Customer Subscriptions
+                            </a>
+                        </li>
+                    @endcan
                 </ul>
-            @endcan
+            @endcanany
 
             @canany(['users.view', 'roles.view'])
                 <div class="app-sidebar__heading">Administration</div>
