@@ -1,0 +1,72 @@
+// ISP Billing — application stylesheet
+//
+// The design system is built on Bootstrap 5. Brand colours are declared here as
+// Sass variables so Bootstrap generates every component, utility and CSS custom
+// property from the same palette. Do not hard-code hex values in Blade views.
+
+// ---------------------------------------------------------------------------
+// Brand palette (MASTER_SPEC §4 — dark blue primary, red accent)
+// ---------------------------------------------------------------------------
+$isp-navy: #0b2545; // dark navy — sidebar, headers
+$isp-navy-deep: #071a33; // darkest shade — sidebar footer, active states
+$isp-blue: #14487f; // deep blue — primary actions
+$isp-blue-bright: #1d6fc9; // hover / focus accents
+$isp-red: #c62828; // accent — destructive actions, overdue states
+$isp-gray-100: #f4f6f9; // page background
+$isp-gray-200: #e4e9f0; // borders, dividers
+$isp-gray-700: #495057; // muted text
+$isp-gray-900: #212529; // body text
+
+// ---------------------------------------------------------------------------
+// Bootstrap overrides
+// ---------------------------------------------------------------------------
+$primary: $isp-blue;
+$secondary: $isp-gray-700;
+$danger: $isp-red;
+$dark: $isp-navy;
+
+$body-bg: $isp-gray-100;
+$body-color: $isp-gray-900;
+$border-color: $isp-gray-200;
+
+$font-family-sans-serif: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+$border-radius: 0.375rem;
+$enable-shadows: false;
+$enable-negative-margins: true;
+
+// Expose the brand ramp to Bootstrap so `text-navy`, `bg-navy` etc. exist.
+$custom-colors: (
+  "navy": $isp-navy,
+  "navy-deep": $isp-navy-deep,
+  "blue-bright": $isp-blue-bright,
+);
+
+@import "bootstrap/scss/functions";
+@import "bootstrap/scss/variables";
+@import "bootstrap/scss/variables-dark";
+
+// Must happen before _maps.scss: Bootstrap derives its utility colour maps
+// (.bg-*, .text-*, .border-*) there, so a later merge would be a silent no-op.
+$theme-colors: map-merge($theme-colors, $custom-colors);
+
+@import "bootstrap/scss/maps";
+@import "bootstrap/scss/bootstrap";
+
+// Point the icon @font-face at a path Vite can resolve and fingerprint, so the
+// woff/woff2 files are emitted into public/build instead of 404ing at runtime.
+$bootstrap-icons-font-dir: "../../node_modules/bootstrap-icons/font/fonts";
+@import "bootstrap-icons/font/bootstrap-icons";
+
+// ---------------------------------------------------------------------------
+// Base application styles
+// ---------------------------------------------------------------------------
+:root {
+  --isp-navy: #{$isp-navy};
+  --isp-navy-deep: #{$isp-navy-deep};
+  --isp-red: #{$isp-red};
+}
+
+body {
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
