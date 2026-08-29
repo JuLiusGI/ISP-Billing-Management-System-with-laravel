@@ -12,6 +12,7 @@ use App\Policies\InternetPlanPolicy;
 use App\Policies\RolePolicy;
 use App\Policies\SubscriptionPolicy;
 use App\Policies\UserPolicy;
+use App\Services\SettingsService;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -19,7 +20,9 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        // Shared for the lifetime of the request so a page that reads a dozen
+        // settings runs one query rather than a dozen.
+        $this->app->singleton(SettingsService::class);
     }
 
     public function boot(): void
