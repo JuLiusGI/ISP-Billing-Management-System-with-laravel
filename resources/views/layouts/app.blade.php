@@ -66,6 +66,18 @@
                 </ul>
             @endcan
 
+            @can('plans.view')
+                <div class="app-sidebar__heading">Internet Services</div>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('plans.*') ? 'active' : '' }}"
+                           href="{{ route('plans.index') }}">
+                            <i class="bi bi-diagram-3"></i> Internet Plans
+                        </a>
+                    </li>
+                </ul>
+            @endcan
+
             @canany(['users.view', 'roles.view'])
                 <div class="app-sidebar__heading">Administration</div>
                 <ul class="nav flex-column">

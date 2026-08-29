@@ -5,8 +5,8 @@ with Laravel 12, Blade, Bootstrap 5 and vanilla JavaScript, targeting a local
 XAMPP (Apache + MariaDB/MySQL) stack.
 
 > **Project status: in development.** Authentication, role-based access control,
-> staff user management and customer management are working on top of the full
-> billing schema. The remaining modules (plans, subscriptions, billing,
+> staff user management, customers and internet plans are working on top of the
+> full billing schema. The remaining modules (subscriptions, billing,
 > invoices, payments, receipts, expenses, reports, analytics, audit logs and
 > settings) are not implemented yet.
 
@@ -188,6 +188,25 @@ the Archived toggle, and archiving frees their email address for reuse.
 
 Profile photos are stored on the `public` disk, so `php artisan storage:link`
 must have been run (see Installation).
+
+## Internet plans
+
+Plans define what is on sale: speeds, monthly price, installation and
+activation fees, and billing cycle. Five example plans are seeded on a fresh
+install; nothing in the application refers to them, and they are meant to be
+edited or replaced.
+
+**Repricing a plan never rewrites history.** A subscription copies the plan's
+rate into `subscriptions.monthly_rate` when it is created, and an invoice
+stores its own totals. Changing `internet_plans.monthly_price` therefore
+affects new signups only — existing subscribers keep the rate they signed up
+on, and issued invoices are untouched. The plan form says so wherever a plan
+already has subscribers.
+
+Retiring a plan means **deactivating** it, which hides it from new signups and
+leaves every existing subscription and invoice alone. A plan that has ever been
+subscribed to cannot be deleted at all, because its subscriptions and invoices
+name it in their history.
 
 ## Testing
 

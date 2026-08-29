@@ -27,7 +27,8 @@ class DatabaseSeeder extends Seeder
             SystemSettingSeeder::class,
             // Depends on RoleAndPermissionSeeder having run first.
             UserSeeder::class,
-            // Sample data. Skips itself if any customer already exists.
+            // Starting data. Each skips itself if its table is already populated.
+            InternetPlanSeeder::class,
             CustomerSeeder::class,
         ]);
     }

@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\InternetPlanController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserController;
@@ -58,6 +59,16 @@ Route::middleware(['auth', 'active'])->group(function (): void {
         Route::put('{customer}', 'update')->middleware('permission:customers.update')->name('update');
         Route::delete('{customer}', 'destroy')->middleware('permission:customers.delete')->name('destroy');
         Route::post('{customer}/restore', 'restore')->middleware('permission:customers.delete')->name('restore');
+    });
+
+    Route::controller(InternetPlanController::class)->prefix('plans')->name('plans.')->group(function (): void {
+        Route::get('/', 'index')->middleware('permission:plans.view')->name('index');
+        Route::get('create', 'create')->middleware('permission:plans.create')->name('create');
+        Route::post('/', 'store')->middleware('permission:plans.create')->name('store');
+        Route::get('{plan}/edit', 'edit')->middleware('permission:plans.update')->name('edit');
+        Route::put('{plan}', 'update')->middleware('permission:plans.update')->name('update');
+        Route::patch('{plan}/toggle', 'toggle')->middleware('permission:plans.update')->name('toggle');
+        Route::delete('{plan}', 'destroy')->middleware('permission:plans.delete')->name('destroy');
     });
 
     // Administration. Abilities are enforced here as well as in the form
