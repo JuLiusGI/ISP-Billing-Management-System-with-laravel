@@ -66,17 +66,55 @@
                 </ul>
             @endcan
 
-            @can('billing.view')
+            @canany(['billing.view', 'invoices.view'])
                 <div class="app-sidebar__heading">Billing</div>
                 <ul class="nav flex-column">
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('billing.*') ? 'active' : '' }}"
-                           href="{{ route('billing.index') }}">
-                            <i class="bi bi-calendar3"></i> Billing Cycles
-                        </a>
-                    </li>
+                    @can('invoices.view')
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('invoices.*') && ! request()->hasAny(['view', 'status']) ? 'active' : '' }}"
+                               href="{{ route('invoices.index') }}">
+                                <i class="bi bi-receipt"></i> Invoices
+                            </a>
+                        </li>
+                    @endcan
+                    @can('invoices.create')
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('invoices.create') ? 'active' : '' }}"
+                               href="{{ route('invoices.create') }}">
+                                <i class="bi bi-file-earmark-plus"></i> Create Invoice
+                            </a>
+                        </li>
+                    @endcan
+                    @can('invoices.view')
+                        <li class="nav-item">
+                            <a class="nav-link {{ request('view') === 'outstanding' ? 'active' : '' }}"
+                               href="{{ route('invoices.index', ['view' => 'outstanding']) }}">
+                                <i class="bi bi-hourglass-split"></i> Unpaid Invoices
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {{ request('view') === 'overdue' ? 'active' : '' }}"
+                               href="{{ route('invoices.index', ['view' => 'overdue']) }}">
+                                <i class="bi bi-exclamation-triangle"></i> Overdue Invoices
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {{ request('status') === 'paid' ? 'active' : '' }}"
+                               href="{{ route('invoices.index', ['status' => 'paid']) }}">
+                                <i class="bi bi-check2-circle"></i> Paid Invoices
+                            </a>
+                        </li>
+                    @endcan
+                    @can('billing.view')
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('billing.*') ? 'active' : '' }}"
+                               href="{{ route('billing.index') }}">
+                                <i class="bi bi-calendar3"></i> Billing Cycles
+                            </a>
+                        </li>
+                    @endcan
                 </ul>
-            @endcan
+            @endcanany
 
             @canany(['plans.view', 'subscriptions.view'])
                 <div class="app-sidebar__heading">Internet Services</div>

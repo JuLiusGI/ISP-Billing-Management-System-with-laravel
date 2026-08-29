@@ -206,6 +206,15 @@
 
             {{-- Invoices --}}
             <div class="tab-pane fade" id="tab-invoices" role="tabpanel">
+                @can('invoices.create')
+                    <div class="d-flex justify-content-end mb-2">
+                        <a href="{{ route('invoices.create', ['customer' => $customer->id]) }}"
+                           class="btn btn-sm btn-primary">
+                            <i class="bi bi-plus-lg me-1"></i> Create invoice
+                        </a>
+                    </div>
+                @endcan
+
                 @if ($invoices->isEmpty())
                     <div class="empty-state">
                         <i class="bi bi-receipt"></i>
@@ -223,7 +232,11 @@
                             <tbody>
                                 @foreach ($invoices as $invoice)
                                     <tr>
-                                        <td><code class="small">{{ $invoice->invoice_number }}</code></td>
+                                        <td>
+                                            <a href="{{ route('invoices.show', $invoice) }}" class="text-decoration-none">
+                                                <code class="small">{{ $invoice->invoice_number }}</code>
+                                            </a>
+                                        </td>
                                         <td class="small">{{ $invoice->invoice_date->format('d M Y') }}</td>
                                         <td class="small">{{ $invoice->due_date->format('d M Y') }}</td>
                                         <td class="text-end small">&#8369;{{ number_format((float) $invoice->total_amount, 2) }}</td>

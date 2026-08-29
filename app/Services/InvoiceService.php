@@ -93,6 +93,47 @@ class InvoiceService
     }
 
     /**
+     * Replaces an invoice's header and lines, then recalculates.
+     *
+     * The caller is responsible for having established that the invoice may
+     * still be amended; the policy refuses this once any payment is applied.
+     *
+     * @param  array<int, array<string, mixed>>  $items
+     * @param  array<string, mixed>  $attributes
+     */
+    public function update(Invoice $invoice, array $items, array $attributes = []): Invoice
+    {
+        if ($items === []) {
+            throw new DomainException('An invoice needs at least one line item.');
+        }
+
+        return DB::transaction(function () use ($invoice, $items, $attributes): Invoice {
+            $invoice->update([
+                'subscription_id' => $attributes['subscription_id'] ?? $invoice->subscription_id,
+                'invoice_date' => $attributes['invoice_date'] ?? $invoice->invoice_date,
+                'due_date' => $attributes['due_date'] ?? $invoice->due_date,
+                'billing_period_start' => $attributes['billing_period_start'] ?? $invoice->billing_period_start,
+                'billing_period_end' => $attributes['billing_period_end'] ?? $invoice->billing_period_end,
+                'notes' => $attributes['notes'] ?? null,
+            ]);
+
+            // The form submits the complete set of lines, so replacing them is
+            // what it actually means.
+            $invoice->items()->delete();
+
+            foreach ($items as $item) {
+                $this->addItem($invoice, $item);
+            }
+
+            return $this->recalculate(
+                $invoice->load('items'),
+                (string) ($attributes['discount_total'] ?? '0'),
+                (string) ($attributes['charges_total'] ?? '0'),
+            );
+        });
+    }
+
+    /**
      * Recomputes every stored total from the invoice's items and payments.
      *
      * Safe to run repeatedly; it is the single place invoice arithmetic lives.
@@ -219,8 +260,11 @@ class InvoiceService
     /**
      * The invoice-level discount, separated from the items' own discounts so
      * recalculating does not double-count them.
+     *
+     * Public because the edit form has to show this figure on its own rather
+     * than the combined discount_total stored on the row.
      */
-    private function invoiceLevelDiscount(Invoice $invoice): string
+    public function invoiceLevelDiscount(Invoice $invoice): string
     {
         $itemDiscounts = '0.00';
 

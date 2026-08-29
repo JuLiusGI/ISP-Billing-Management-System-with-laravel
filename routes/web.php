@@ -7,6 +7,7 @@ use App\Http\Controllers\BillingCycleController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InternetPlanController;
+use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SubscriptionController;
@@ -91,6 +92,17 @@ Route::middleware(['auth', 'active'])->group(function (): void {
         Route::get('{cycle}', 'show')->middleware('permission:billing.view')->name('show');
         Route::post('{cycle}/generate', 'generate')->middleware('permission:billing.generate')->name('generate');
         Route::post('mark-overdue', 'markOverdue')->middleware('permission:billing.generate')->name('mark-overdue');
+    });
+
+    Route::controller(InvoiceController::class)->prefix('invoices')->name('invoices.')->group(function (): void {
+        Route::get('/', 'index')->middleware('permission:invoices.view')->name('index');
+        Route::get('create', 'create')->middleware('permission:invoices.create')->name('create');
+        Route::post('/', 'store')->middleware('permission:invoices.create')->name('store');
+        Route::get('{invoice}', 'show')->middleware('permission:invoices.view')->name('show');
+        Route::get('{invoice}/print', 'print')->middleware('permission:invoices.view')->name('print');
+        Route::get('{invoice}/edit', 'edit')->middleware('permission:invoices.update')->name('edit');
+        Route::put('{invoice}', 'update')->middleware('permission:invoices.update')->name('update');
+        Route::patch('{invoice}/cancel', 'cancel')->middleware('permission:invoices.cancel')->name('cancel');
     });
 
     // Administration. Abilities are enforced here as well as in the form

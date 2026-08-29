@@ -5,10 +5,10 @@ with Laravel 12, Blade, Bootstrap 5 and vanilla JavaScript, targeting a local
 XAMPP (Apache + MariaDB/MySQL) stack.
 
 > **Project status: in development.** Authentication, role-based access control,
-> staff user management, customers, internet plans, subscriptions and the
-> billing engine are working on the full schema. The remaining modules
-> (invoice management, payments, receipts, expenses, reports, analytics, audit
-> logs and settings) are not implemented yet.
+> staff user management, customers, internet plans, subscriptions, the billing
+> engine and invoice management are working on the full schema. The remaining
+> modules (payments, receipts, expenses, reports, analytics, audit logs and
+> settings) are not implemented yet.
 
 ## Requirements
 
@@ -286,6 +286,35 @@ applied to it; reverse those first. Financial rows are never deleted.
 Configurable values (invoice prefix, grace period, tax on/off and rate) are
 read through `SettingsService` from `system_settings`, never hard-coded. The
 screen for editing them arrives with the settings phase.
+
+## Invoice management
+
+Invoices reach the system two ways: generated in bulk by a billing cycle, or
+created by hand from **Billing → Create Invoice** (or from a customer's
+profile, which preselects them). The manual form takes any number of lines,
+each with its own type, quantity, unit price and discount, plus an
+invoice-level discount and additional charges. It shows a running total as you
+type, but that is a preview only — the server recalculates every figure on
+save, tax included.
+
+**An invoice becomes immutable the moment money is applied to it.** Before any
+payment it is a document still being prepared and can be freely amended;
+afterwards a payment and a receipt already refer to its figures, so rewriting
+them would falsify both. The same rule blocks cancellation: reverse the
+payments first. Cancelled invoices keep their row with a zero balance and a
+recorded reason — financial records are never deleted.
+
+The customer on an invoice is fixed after issue, since moving one would falsify
+two customers' histories.
+
+Listing supports search by invoice number, account number or customer name, and
+filters on status, date range and amount. Two saved views span several statuses:
+**Unpaid** (unpaid, partially paid and overdue) and **Overdue**. The totals
+above the table are summed over the whole filtered set, not the visible page.
+
+Every invoice has a printer-friendly version at `/invoices/{id}/print`, headed
+with the company details from system settings and driven by the browser's own
+print dialog.
 
 ## Testing
 

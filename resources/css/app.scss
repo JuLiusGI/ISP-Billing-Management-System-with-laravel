@@ -275,6 +275,75 @@ body.sidebar-open {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Printable documents (invoices, receipts)
+//
+// Rendered as an on-screen sheet that collapses to clean paper output: the
+// toolbar and any browser chrome drop away, and the sheet loses its shadow
+// and margins so it fills the page.
+// ---------------------------------------------------------------------------
+.doc-body {
+  background: $isp-gray-100;
+}
+
+.doc-toolbar {
+  background: #fff;
+  border-bottom: 1px solid $isp-gray-200;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.doc-sheet {
+  max-width: 46rem;
+  margin: 1.5rem auto;
+  padding: 2.5rem;
+  background: #fff;
+  border: 1px solid $isp-gray-200;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.doc-table {
+  thead th {
+    background: $isp-gray-100;
+    font-size: 0.75rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    border-bottom: 2px solid $isp-navy;
+  }
+}
+
+.doc-totals td {
+  border: 0;
+  padding: 0.25rem 0;
+}
+
+@media print {
+  .doc-body {
+    background: #fff;
+  }
+
+  .doc-sheet {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+  }
+
+  // Keep status badges legible when printed without background graphics.
+  .badge {
+    border: 1px solid currentColor;
+    color: #000 !important;
+    background: transparent !important;
+  }
+
+  a {
+    text-decoration: none;
+    color: inherit;
+  }
+}
+
 .empty-state {
   padding: 3rem 1rem;
   text-align: center;
