@@ -6,19 +6,29 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
+            $table->string('first_name');
+            $table->string('last_name');
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->string('phone', 30)->nullable();
+            $table->string('avatar_path')->nullable();
+
+            // Lets an account be disabled without deleting the audit trail it owns.
+            $table->enum('status', ['active', 'inactive', 'suspended'])->default('active');
+
+            $table->timestamp('last_login_at')->nullable();
+            $table->string('last_login_ip', 45)->nullable();
             $table->rememberToken();
+            $table->softDeletes();
             $table->timestamps();
+
+            $table->index('status');
+            $table->index('last_name');
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
@@ -37,13 +47,10 @@ return new class extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists('users');
-        Schema::dropIfExists('password_reset_tokens');
         Schema::dropIfExists('sessions');
+        Schema::dropIfExists('password_reset_tokens');
+        Schema::dropIfExists('users');
     }
 };

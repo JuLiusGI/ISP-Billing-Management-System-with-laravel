@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -11,15 +10,20 @@ class DatabaseSeeder extends Seeder
     use WithoutModelEvents;
 
     /**
-     * Seed the application's database.
+     * Seeds the reference data the application needs in order to run.
+     *
+     * Every seeder below is idempotent, so `db:seed` can be re-run without
+     * duplicating rows or overwriting configuration an administrator changed.
+     *
+     * Demo data (users, customers, subscriptions, invoices, payments) arrives
+     * with the model factories in a later phase.
      */
     public function run(): void
     {
-        // User::factory(10)->create();
-
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        $this->call([
+            RoleAndPermissionSeeder::class,
+            ExpenseCategorySeeder::class,
+            SystemSettingSeeder::class,
         ]);
     }
 }
