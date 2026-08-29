@@ -15,8 +15,8 @@ class DatabaseSeeder extends Seeder
      * Every seeder below is idempotent, so `db:seed` can be re-run without
      * duplicating rows or overwriting configuration an administrator changed.
      *
-     * Demo data (users, customers, subscriptions, invoices, payments) arrives
-     * with the model factories in a later phase.
+     * Demo data (customers, subscriptions, invoices, payments) arrives with
+     * the modules that own it.
      */
     public function run(): void
     {
@@ -24,6 +24,8 @@ class DatabaseSeeder extends Seeder
             RoleAndPermissionSeeder::class,
             ExpenseCategorySeeder::class,
             SystemSettingSeeder::class,
+            // Depends on RoleAndPermissionSeeder having run first.
+            UserSeeder::class,
         ]);
     }
 }

@@ -4,10 +4,10 @@ A web-based billing and management system for an Internet Service Provider, buil
 with Laravel 12, Blade, Bootstrap 5 and vanilla JavaScript, targeting a local
 XAMPP (Apache + MariaDB/MySQL) stack.
 
-> **Project status: foundation only.** The Laravel application, database
-> connection and Bootstrap 5 asset pipeline are configured and verified. The ISP
+> **Project status: in development.** Authentication, staff user management and
+> the application shell are working on top of the full billing schema. The ISP
 > business modules (customers, plans, subscriptions, billing, invoices, payments,
-> receipts, expenses, reports, dashboard, audit logs, settings) are not
+> receipts, expenses, reports, analytics, audit logs, settings) are not
 > implemented yet.
 
 ## Requirements
@@ -108,6 +108,25 @@ XAMPP enables by default. For a cleaner URL, point an Apache virtual host's
 
 Both options are verified working.
 
+## Development sign-in
+
+`php artisan migrate --seed` creates one account per role. **These are
+development credentials and must be changed before any real deployment.**
+
+| Email | Role |
+|---|---|
+| `admin@example.com` | Super Admin |
+| `billing@example.com` | Billing Staff |
+| `technician@example.com` | Technician |
+| `accountant@example.com` | Accountant |
+
+All four use the password `password`. Override the administrator account with
+`SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD` in `.env`.
+
+Only accounts with status `active` can sign in, and the status is re-checked on
+every request, so suspending someone ends their session immediately rather than
+when it expires.
+
 ## Testing
 
 Create the test database once:
@@ -136,7 +155,8 @@ database. The development database `isp_billing` is never touched by the suite.
 | `APP_DEBUG` | Must be `false` in production. |
 | `DB_CONNECTION` / `DB_HOST` / `DB_PORT` / `DB_DATABASE` / `DB_USERNAME` / `DB_PASSWORD` | Database connection. |
 | `SESSION_DRIVER`, `CACHE_STORE`, `QUEUE_CONNECTION` | Default to `database`. |
-| `MAIL_*` | Mail transport. Defaults to the `log` driver in development. |
+| `MAIL_*` | Mail transport. Defaults to the `log` driver in development. Password reset needs a working mailer. |
+| `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` | Credentials for the seeded administrator. Change before deployment. |
 
 `.env` is never committed. Copy `.env.example` and fill it in per environment.
 

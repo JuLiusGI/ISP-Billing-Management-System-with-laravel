@@ -70,3 +70,218 @@ body {
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
 }
+
+// ---------------------------------------------------------------------------
+// Application shell: fixed sidebar beside a scrolling main column. Below the
+// lg breakpoint the sidebar slides over the content instead.
+// ---------------------------------------------------------------------------
+$sidebar-width: 250px;
+
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+.app-sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 1045;
+  width: $sidebar-width;
+  display: flex;
+  flex-direction: column;
+  background: $isp-navy;
+  transform: translateX(-100%);
+  transition: transform 0.2s ease-in-out;
+
+  &__brand {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  &__nav {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 0.75rem 0.5rem;
+
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      padding: 0.55rem 0.75rem;
+      margin-bottom: 0.15rem;
+      border-radius: $border-radius;
+      color: rgba(255, 255, 255, 0.75);
+      font-size: 0.9rem;
+
+      &:hover,
+      &:focus {
+        background: rgba(255, 255, 255, 0.08);
+        color: #fff;
+      }
+
+      &.active {
+        background: $isp-blue;
+        color: #fff;
+        font-weight: 500;
+        // The red edge is the one accent that marks the current section.
+        box-shadow: inset 3px 0 0 $isp-red;
+      }
+    }
+  }
+
+  &__heading {
+    padding: 1rem 0.75rem 0.35rem;
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.4);
+  }
+
+  &__footer {
+    padding: 0.85rem 1.25rem;
+    background: $isp-navy-deep;
+  }
+
+  &__backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1040;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+  }
+}
+
+body.sidebar-open {
+  overflow: hidden;
+
+  .app-sidebar { transform: translateX(0); }
+  .app-sidebar__backdrop { display: block; }
+}
+
+.app-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 1030;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1rem;
+  background: #fff;
+  border-bottom: 1px solid $isp-gray-200;
+
+  &__title {
+    font-weight: 600;
+    color: $isp-navy;
+  }
+}
+
+.app-breadcrumb {
+  padding: 0.6rem 1rem;
+  background: #fff;
+  border-bottom: 1px solid $isp-gray-200;
+}
+
+.app-content {
+  flex: 1 1 auto;
+  padding: 1.25rem 1rem;
+}
+
+.app-footer {
+  padding: 0.85rem 1rem;
+  border-top: 1px solid $isp-gray-200;
+}
+
+.app-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background: $isp-navy;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+@include media-breakpoint-up(lg) {
+  .app-sidebar {
+    transform: none;
+  }
+
+  .app-main {
+    margin-left: $sidebar-width;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Guest / authentication screens
+// ---------------------------------------------------------------------------
+.auth-body {
+  background: linear-gradient(160deg, $isp-navy 0%, $isp-navy-deep 100%);
+}
+
+.auth-wrapper {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 100vh;
+  max-width: 27rem;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.auth-card {
+  border-radius: 0.75rem;
+  overflow: hidden;
+
+  &__brand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1.25rem;
+    background: $isp-navy;
+    color: #fff;
+    border-bottom: 3px solid $isp-red;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Tables
+// ---------------------------------------------------------------------------
+.table-app {
+  th {
+    font-size: 0.75rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: $isp-gray-700;
+    white-space: nowrap;
+  }
+
+  td {
+    vertical-align: middle;
+  }
+}
+
+.empty-state {
+  padding: 3rem 1rem;
+  text-align: center;
+  color: $isp-gray-700;
+
+  i {
+    font-size: 2.5rem;
+    color: $isp-gray-200;
+  }
+}

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>@yield('title', 'Dashboard') &middot; {{ config('app.name') }}</title>
+    @vite(['resources/css/app.scss', 'resources/js/app.js'])
+</head>
+<body class="app-body">
+
+<div class="app-shell">
+
+    {{-- Sidebar --------------------------------------------------------- --}}
+    <aside class="app-sidebar" id="appSidebar">
+        <div class="app-sidebar__brand">
+            <a href="{{ route('dashboard') }}" class="d-flex align-items-center gap-2 text-white text-decoration-none">
+                <i class="bi bi-router-fill fs-4 text-danger"></i>
+                <span class="fw-semibold">{{ config('app.name') }}</span>
+            </a>
+            <button class="btn btn-sm btn-link text-white-50 d-lg-none p-0" type="button"
+                    data-sidebar-close aria-label="Close menu">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+
+        <nav class="app-sidebar__nav" aria-label="Main navigation">
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}"
+                       href="{{ route('dashboard') }}">
+                        <i class="bi bi-speedometer2"></i> Dashboard
+                    </a>
+                </li>
+            </ul>
+
+            @if (auth()->user()->hasPermission('users.view'))
+                <div class="app-sidebar__heading">Administration</div>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('users.*') ? 'active' : '' }}"
+                           href="{{ route('users.index') }}">
+                            <i class="bi bi-people"></i> Users
+                        </a>
+                    </li>
+                </ul>
+            @endif
+        </nav>
+
+        <div class="app-sidebar__footer small">
+            <div class="text-white-50">Signed in as</div>
+            <div class="text-white text-truncate">{{ auth()->user()->full_name }}</div>
+        </div>
+    </aside>
+
+    <div class="app-sidebar__backdrop" data-sidebar-close></div>
+
+    {{-- Main ------------------------------------------------------------ --}}
+    <div class="app-main">
+        <header class="app-topbar">
+            <button class="btn btn-link text-dark d-lg-none p-0 me-2" type="button"
+                    data-sidebar-open aria-label="Open menu">
+                <i class="bi bi-list fs-4"></i>
+            </button>
+
+            <h1 class="app-topbar__title h6 mb-0">@yield('title', 'Dashboard')</h1>
+
+            <div class="ms-auto dropdown">
+                <button class="btn btn-sm btn-light border d-flex align-items-center gap-2 dropdown-toggle"
+                        type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <span class="app-avatar">{{ auth()->user()->initials }}</span>
+                    <span class="d-none d-sm-inline">{{ auth()->user()->full_name }}</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                    <li>
+                        <span class="dropdown-item-text small text-secondary">
+                            {{ auth()->user()->roles->pluck('display_name')->join(', ') ?: 'No role assigned' }}
+                        </span>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <a class="dropdown-item" href="{{ route('profile.edit') }}">
+                            <i class="bi bi-person-gear me-2"></i>My profile
+                        </a>
+                    </li>
+                    <li>
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
+                            <button type="submit" class="dropdown-item text-danger">
+                                <i class="bi bi-box-arrow-right me-2"></i>Sign out
+                            </button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </header>
+
+        @hasSection('breadcrumb')
+            <nav class="app-breadcrumb" aria-label="Breadcrumb">
+                <ol class="breadcrumb mb-0 small">
+                    <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Dashboard</a></li>
+                    @yield('breadcrumb')
+                </ol>
+            </nav>
+        @endif
+
+        <main class="app-content">
+            @yield('content')
+        </main>
+
+        <footer class="app-footer small text-secondary">
+            &copy; {{ date('Y') }} {{ config('app.name') }}
+        </footer>
+    </div>
+</div>
+
+<x-toasts />
+
+<script>
+    // Off-canvas sidebar for narrow screens.
+    document.addEventListener('click', (event) => {
+        if (event.target.closest('[data-sidebar-open]')) {
+            document.body.classList.add('sidebar-open');
+        }
+        if (event.target.closest('[data-sidebar-close]')) {
+            document.body.classList.remove('sidebar-open');
+        }
+    });
+
+    // Confirmation for destructive submits.
+    document.addEventListener('submit', (event) => {
+        const message = event.target.dataset.confirm;
+        if (message && !window.confirm(message)) {
+            event.preventDefault();
+        }
+    });
+</script>
+@stack('scripts')
+</body>
+</html>
