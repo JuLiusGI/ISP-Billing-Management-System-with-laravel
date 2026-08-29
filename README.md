@@ -53,11 +53,22 @@ DB_USERNAME=root
 DB_PASSWORD=
 ```
 
-Then run the migrations:
+Then run the migrations and seed the reference data:
 
 ```bash
-php artisan migrate
+php artisan migrate --seed
 php artisan migrate:status
+```
+
+Seeding installs the role/permission catalogue, the default expense categories
+and the system settings defaults. Every seeder is idempotent, so `db:seed` can
+be re-run safely; settings an administrator has changed are preserved.
+
+`database/schema.sql` holds the same structure as a standalone MySQL script for
+environments that do not run Laravel's migrations:
+
+```bash
+mysql -u root -p < database/schema.sql
 ```
 
 > If a standalone MySQL Server is also installed alongside XAMPP, its client may
@@ -99,12 +110,22 @@ Both options are verified working.
 
 ## Testing
 
+Create the test database once:
+
+```sql
+CREATE DATABASE isp_billing_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+Then:
+
 ```bash
 php artisan test
 ```
 
-Tests run against an in-memory SQLite database (configured in `phpunit.xml`), so
-they never touch the development MySQL database.
+Tests run against MySQL (`isp_billing_test`, configured in `phpunit.xml`), not
+SQLite. This is deliberate: SQLite has no true `DECIMAL` type, so monetary
+assertions could pass under SQLite and still be wrong against the real billing
+database. The development database `isp_billing` is never touched by the suite.
 
 ## Environment variables
 
