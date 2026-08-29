@@ -128,6 +128,8 @@ class ReceiptTest extends TestCase
 
     public function test_the_receipt_shows_everything_the_specification_requires(): void
     {
+        // The factory adds a middle name most of the time, so assert against
+        // the rendered full name rather than a hard-coded "First Last".
         $customer = Customer::factory()->create(['first_name' => 'Maria', 'last_name' => 'Santos']);
         $invoice = $this->invoices->create($customer, [
             ['description' => 'Monthly service', 'unit_price' => '1500.00'],
@@ -147,7 +149,7 @@ class ReceiptTest extends TestCase
             ->assertOk()
             ->assertSee('OFFICIAL RECEIPT')
             ->assertSee('ISP Billing')                    // ISP name
-            ->assertSee('Maria Santos')                   // customer name
+            ->assertSee($customer->full_name)             // customer name
             ->assertSee($customer->account_number)        // account number
             ->assertSee($receipt->receipt_number)         // receipt number
             ->assertSee($payment->payment_reference)      // payment reference
