@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -58,5 +59,14 @@ Route::middleware(['auth', 'active'])->group(function (): void {
         Route::get('{user}/edit', 'edit')->middleware('permission:users.update')->name('edit');
         Route::put('{user}', 'update')->middleware('permission:users.update')->name('update');
         Route::delete('{user}', 'destroy')->middleware('permission:users.delete')->name('destroy');
+    });
+
+    Route::controller(RoleController::class)->prefix('roles')->name('roles.')->group(function (): void {
+        Route::get('/', 'index')->middleware('permission:roles.view')->name('index');
+        Route::get('create', 'create')->middleware('permission:roles.manage')->name('create');
+        Route::post('/', 'store')->middleware('permission:roles.manage')->name('store');
+        Route::get('{role}/edit', 'edit')->middleware('permission:roles.manage')->name('edit');
+        Route::put('{role}', 'update')->middleware('permission:roles.manage')->name('update');
+        Route::delete('{role}', 'destroy')->middleware('permission:roles.manage')->name('destroy');
     });
 });

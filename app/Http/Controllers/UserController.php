@@ -17,6 +17,8 @@ class UserController extends Controller
 {
     public function index(Request $request): View
     {
+        $this->authorize('viewAny', User::class);
+
         $users = User::query()
             ->with('roles')
             ->when($request->filled('search'), function (Builder $query) use ($request): void {
@@ -43,6 +45,8 @@ class UserController extends Controller
 
     public function create(): View
     {
+        $this->authorize('create', User::class);
+
         return view('users.create', [
             'roles' => Role::orderBy('display_name')->get(),
             'statuses' => UserStatus::cases(),
@@ -65,6 +69,8 @@ class UserController extends Controller
 
     public function show(User $user): View
     {
+        $this->authorize('view', $user);
+
         return view('users.show', [
             'user' => $user->load('roles.permissions'),
         ]);
@@ -72,6 +78,8 @@ class UserController extends Controller
 
     public function edit(User $user): View
     {
+        $this->authorize('update', $user);
+
         return view('users.edit', [
             'user' => $user->load('roles'),
             'roles' => Role::orderBy('display_name')->get(),
@@ -81,7 +89,13 @@ class UserController extends Controller
 
     public function update(UpdateUserRequest $request, User $user): RedirectResponse
     {
-        $this->guardAgainstSelfLockout($request, $user);
+        // Depends on the submitted status and roles, so it cannot be settled
+        // by update() alone.
+        $this->authorize('saveWith', [
+            $user,
+            (string) $request->input('status'),
+            (array) $request->input('roles', []),
+        ]);
 
         DB::transaction(function () use ($request, $user): void {
             $attributes = $request->safe()->except(['roles', 'password']);
@@ -99,15 +113,9 @@ class UserController extends Controller
             ->with('success', "{$user->full_name} has been updated.");
     }
 
-    public function destroy(Request $request, User $user): RedirectResponse
+    public function destroy(User $user): RedirectResponse
     {
-        if ($request->user()->is($user)) {
-            return back()->with('error', 'You cannot delete your own account.');
-        }
-
-        if ($this->isLastSuperAdmin($user)) {
-            return back()->with('error', 'The last super admin cannot be deleted.');
-        }
+        $this->authorize('delete', $user);
 
         // Soft delete: the user owns audit and payment history that must stay
         // attributable after the account is retired.
@@ -116,43 +124,5 @@ class UserController extends Controller
         return redirect()
             ->route('users.index')
             ->with('success', "{$user->full_name} has been deactivated.");
-    }
-
-    /**
-     * Stops an administrator from removing their own last way back in, by
-     * suspending themselves or dropping their own super admin role.
-     */
-    private function guardAgainstSelfLockout(Request $request, User $user): void
-    {
-        if (! $request->user()->is($user)) {
-            return;
-        }
-
-        $stillSuperAdmin = in_array(
-            (string) Role::where('name', Role::SUPER_ADMIN)->value('id'),
-            array_map('strval', $request->input('roles', [])),
-            true
-        );
-
-        abort_if(
-            $request->input('status') !== UserStatus::Active->value,
-            403,
-            'You cannot change your own account away from active.'
-        );
-
-        abort_if(
-            $user->isSuperAdmin() && ! $stillSuperAdmin && $this->isLastSuperAdmin($user),
-            403,
-            'You are the last super admin and cannot remove your own role.'
-        );
-    }
-
-    private function isLastSuperAdmin(User $user): bool
-    {
-        if (! $user->isSuperAdmin()) {
-            return false;
-        }
-
-        return User::withRole(Role::SUPER_ADMIN)->count() <= 1;
     }
 }

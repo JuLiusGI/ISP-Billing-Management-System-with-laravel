@@ -11,7 +11,7 @@ class UpdateUserRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->hasPermission('users.update') ?? false;
+        return $this->user()?->can('update', $this->route('user')) ?? false;
     }
 
     /** @return array<string, mixed> */

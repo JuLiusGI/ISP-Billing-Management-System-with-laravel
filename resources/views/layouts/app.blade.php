@@ -34,17 +34,27 @@
                 </li>
             </ul>
 
-            @if (auth()->user()->hasPermission('users.view'))
+            @canany(['users.view', 'roles.view'])
                 <div class="app-sidebar__heading">Administration</div>
                 <ul class="nav flex-column">
-                    <li class="nav-item">
-                        <a class="nav-link {{ request()->routeIs('users.*') ? 'active' : '' }}"
-                           href="{{ route('users.index') }}">
-                            <i class="bi bi-people"></i> Users
-                        </a>
-                    </li>
+                    @can('users.view')
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('users.*') ? 'active' : '' }}"
+                               href="{{ route('users.index') }}">
+                                <i class="bi bi-people"></i> Users
+                            </a>
+                        </li>
+                    @endcan
+                    @can('roles.view')
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('roles.*') ? 'active' : '' }}"
+                               href="{{ route('roles.index') }}">
+                                <i class="bi bi-shield-lock"></i> Roles &amp; permissions
+                            </a>
+                        </li>
+                    @endcan
                 </ul>
-            @endif
+            @endcanany
         </nav>
 
         <div class="app-sidebar__footer small">

@@ -4,11 +4,11 @@ A web-based billing and management system for an Internet Service Provider, buil
 with Laravel 12, Blade, Bootstrap 5 and vanilla JavaScript, targeting a local
 XAMPP (Apache + MariaDB/MySQL) stack.
 
-> **Project status: in development.** Authentication, staff user management and
-> the application shell are working on top of the full billing schema. The ISP
-> business modules (customers, plans, subscriptions, billing, invoices, payments,
-> receipts, expenses, reports, analytics, audit logs, settings) are not
-> implemented yet.
+> **Project status: in development.** Authentication, role-based access control,
+> staff user management and the application shell are working on top of the full
+> billing schema. The ISP business modules (customers, plans, subscriptions,
+> billing, invoices, payments, receipts, expenses, reports, analytics, audit
+> logs, settings) are not implemented yet.
 
 ## Requirements
 
@@ -126,6 +126,41 @@ All four use the password `password`. Override the administrator account with
 Only accounts with status `active` can sign in, and the status is re-checked on
 every request, so suspending someone ends their session immediately rather than
 when it expires.
+
+## Roles and permissions
+
+Access is granted by ability (`invoices.create`, `users.delete`, …), abilities
+are grouped into roles, and roles are assigned to users. Five roles ship with
+the application and are seeded as system roles.
+
+| Role | Scope |
+|---|---|
+| Super Admin | Unrestricted. Bypasses every ability check. |
+| Administrator | Everything except redefining roles (`roles.manage`). |
+| Billing Staff | Customers, subscriptions, invoicing, payments, receipts. |
+| Technician | Customers and service status. Nothing financial. |
+| Accountant | Payments, expenses, financial reporting. Cannot invoice. |
+
+Enforcement happens in three places, and the UI is never one of them:
+
+1. **Route middleware** — `permission:users.view` on the route itself.
+2. **Form requests** — `authorize()` re-checks before validation runs.
+3. **Policies** — `UserPolicy` / `RolePolicy` for decisions that depend on the
+   record, such as refusing to delete the last super admin.
+
+Blade's `@can` only decides what to *draw*. Hiding a link never protects a
+route.
+
+Abilities are resolved by a single `Gate::before` hook in `AppServiceProvider`,
+so new permission rows work immediately without registering a gate for each.
+Abilities named with a dot go through that hook; policy abilities (`view`,
+`update`, `delete`) deliberately do not, because a blanket super admin grant
+there would skip guards that must hold for everyone.
+
+Custom roles can be added from **Administration → Roles & permissions**. System
+roles cannot be deleted, a role still assigned to someone must be emptied
+first, and the Super Admin role is not editable because it bypasses the checks
+its permission list would describe.
 
 ## Testing
 

@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Collection;
 
 class User extends Authenticatable
 {
@@ -84,9 +85,11 @@ class User extends Authenticatable
     // -----------------------------------------------------------------
     // Roles and abilities
     //
-    // These answer "what does this user have?". Enforcing it (gates,
-    // policies, middleware) is wired up in the authorization phase.
+    // These answer "what does this user have?". Enforcement runs through
+    // the gate registered in AppServiceProvider and the model policies.
     // -----------------------------------------------------------------
+
+    private ?Collection $abilityCache = null;
 
     public function hasRole(string ...$roles): bool
     {
@@ -98,17 +101,41 @@ class User extends Authenticatable
         return $this->hasRole(Role::SUPER_ADMIN);
     }
 
-    public function hasPermission(string $permission): bool
+    /**
+     * Every ability granted by this user's roles, de-duplicated.
+     *
+     * Memoised for the lifetime of the instance: a single page renders
+     * dozens of ability checks, and each would otherwise re-walk the
+     * loaded role and permission relations.
+     *
+     * @return Collection<int, string>
+     */
+    public function abilities(): Collection
     {
-        if ($this->isSuperAdmin()) {
-            return true;
-        }
-
-        return $this->roles
+        return $this->abilityCache ??= $this->roles
             ->loadMissing('permissions')
             ->pluck('permissions')
             ->flatten()
-            ->contains('name', $permission);
+            ->pluck('name')
+            ->unique()
+            ->values();
+    }
+
+    public function hasPermission(string $permission): bool
+    {
+        return $this->isSuperAdmin() || $this->abilities()->contains($permission);
+    }
+
+    /**
+     * Drops the memoised abilities. Call after changing this user's roles
+     * within a single request, otherwise the stale set is reused.
+     */
+    public function forgetAbilities(): static
+    {
+        $this->abilityCache = null;
+        $this->unsetRelation('roles');
+
+        return $this;
     }
 
     // -----------------------------------------------------------------

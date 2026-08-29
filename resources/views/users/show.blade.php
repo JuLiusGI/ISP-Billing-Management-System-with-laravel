@@ -39,13 +39,13 @@
                     </dl>
                 </div>
 
-                @if (auth()->user()->hasPermission('users.update'))
+                @can('update', $user)
                     <div class="card-footer bg-white border-top">
                         <a href="{{ route('users.edit', $user) }}" class="btn btn-sm btn-primary">
                             <i class="bi bi-pencil me-1"></i> Edit user
                         </a>
                     </div>
-                @endif
+                @endcan
             </div>
         </div>
 

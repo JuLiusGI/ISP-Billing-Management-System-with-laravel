@@ -12,11 +12,11 @@
             <p class="small text-secondary mb-0">{{ $users->total() }} account(s) found</p>
         </div>
 
-        @if (auth()->user()->hasPermission('users.create'))
+        @can('create', App\Models\User::class)
             <a href="{{ route('users.create') }}" class="btn btn-primary btn-sm">
                 <i class="bi bi-plus-lg me-1"></i> Add user
             </a>
-        @endif
+        @endcan
     </div>
 
     {{-- Filters are submitted to the server; the query never happens in JS. --}}
@@ -122,14 +122,15 @@
                                                     <i class="bi bi-eye me-2"></i>View
                                                 </a>
                                             </li>
-                                            @if (auth()->user()->hasPermission('users.update'))
+                                            @can('update', $user)
                                                 <li>
                                                     <a class="dropdown-item" href="{{ route('users.edit', $user) }}">
                                                         <i class="bi bi-pencil me-2"></i>Edit
                                                     </a>
                                                 </li>
-                                            @endif
-                                            @if (auth()->user()->hasPermission('users.delete') && ! auth()->user()->is($user))
+                                            @endcan
+                                            {{-- The policy also hides this for yourself and for the last super admin. --}}
+                                            @can('delete', $user)
                                                 <li><hr class="dropdown-divider"></li>
                                                 <li>
                                                     <form method="POST" action="{{ route('users.destroy', $user) }}"
@@ -141,7 +142,7 @@
                                                         </button>
                                                     </form>
                                                 </li>
-                                            @endif
+                                            @endcan
                                         </ul>
                                     </div>
                                 </td>

@@ -28,9 +28,9 @@
     <div class="card border-0">
         <div class="card-header bg-white border-bottom d-flex align-items-center justify-content-between">
             <span class="fw-semibold text-navy">Recently added staff</span>
-            @if (auth()->user()->hasPermission('users.view'))
+            @can('users.view')
                 <a href="{{ route('users.index') }}" class="btn btn-sm btn-outline-primary">View all</a>
-            @endif
+            @endcan
         </div>
 
         @if ($recentUsers->isEmpty())
