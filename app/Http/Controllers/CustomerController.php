@@ -10,6 +10,7 @@ use App\Http\Requests\StoreCustomerRequest;
 use App\Http\Requests\UpdateCustomerRequest;
 use App\Models\Customer;
 use App\Services\CustomerService;
+use App\Services\PaymentService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,7 +19,10 @@ use RuntimeException;
 
 class CustomerController extends Controller
 {
-    public function __construct(private readonly CustomerService $customers) {}
+    public function __construct(
+        private readonly CustomerService $customers,
+        private readonly PaymentService $payments,
+    ) {}
 
     public function index(Request $request): View
     {
@@ -85,6 +89,8 @@ class CustomerController extends Controller
             'outstandingBalance' => $customer->outstandingBalance(),
             'totalInvoiced' => $customer->invoices()->sum('total_amount'),
             'totalPaid' => $customer->payments()->completed()->sum('amount'),
+            // Money received but not yet applied to any invoice.
+            'availableCredit' => $this->payments->availableCreditFor($customer),
         ]);
     }
 
