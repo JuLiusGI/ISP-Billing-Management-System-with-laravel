@@ -5,10 +5,10 @@ with Laravel 12, Blade, Bootstrap 5 and vanilla JavaScript, targeting a local
 XAMPP (Apache + MariaDB/MySQL) stack.
 
 > **Project status: in development.** Authentication, role-based access control,
-> staff user management and the application shell are working on top of the full
-> billing schema. The ISP business modules (customers, plans, subscriptions,
-> billing, invoices, payments, receipts, expenses, reports, analytics, audit
-> logs, settings) are not implemented yet.
+> staff user management and customer management are working on top of the full
+> billing schema. The remaining modules (plans, subscriptions, billing,
+> invoices, payments, receipts, expenses, reports, analytics, audit logs and
+> settings) are not implemented yet.
 
 ## Requirements
 
@@ -32,6 +32,9 @@ npm install
 
 cp .env.example .env
 php artisan key:generate
+
+# Customer profile photos are served from the public disk.
+php artisan storage:link
 ```
 
 ### Database
@@ -161,6 +164,30 @@ Custom roles can be added from **Administration → Roles & permissions**. Syste
 roles cannot be deleted, a role still assigned to someone must be emptied
 first, and the Super Admin role is not editable because it bypasses the checks
 its permission list would describe.
+
+## Customers
+
+Customer records carry three independent status axes, because in practice they
+move separately:
+
+| Field | Meaning |
+|---|---|
+| `status` | Lifecycle — pending installation, active, inactive, suspended, terminated. |
+| `account_status` | Billing standing — good standing, overdue, delinquent. |
+| `connection_status` | Whether the physical line is up. |
+
+Account numbers (`ACC-YYYY-NNNNN`) are generated on save and never accepted
+from input. Generation derives from the current maximum id, so two concurrent
+requests can pick the same number; the unique index is the real guarantee and
+`CustomerService` retries on collision.
+
+Customers are **archived**, never deleted — soft delete keeps their invoices
+and payments attributable. A customer with an outstanding balance cannot be
+archived. Archived records are hidden from the default list and reachable via
+the Archived toggle, and archiving frees their email address for reuse.
+
+Profile photos are stored on the `public` disk, so `php artisan storage:link`
+must have been run (see Installation).
 
 ## Testing
 

@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
+use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleController;
@@ -47,6 +48,17 @@ Route::middleware(['auth', 'active'])->group(function (): void {
     Route::get('profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::put('profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
+
+    Route::controller(CustomerController::class)->prefix('customers')->name('customers.')->group(function (): void {
+        Route::get('/', 'index')->middleware('permission:customers.view')->name('index');
+        Route::get('create', 'create')->middleware('permission:customers.create')->name('create');
+        Route::post('/', 'store')->middleware('permission:customers.create')->name('store');
+        Route::get('{customer}', 'show')->middleware('permission:customers.view')->name('show');
+        Route::get('{customer}/edit', 'edit')->middleware('permission:customers.update')->name('edit');
+        Route::put('{customer}', 'update')->middleware('permission:customers.update')->name('update');
+        Route::delete('{customer}', 'destroy')->middleware('permission:customers.delete')->name('destroy');
+        Route::post('{customer}/restore', 'restore')->middleware('permission:customers.delete')->name('restore');
+    });
 
     // Administration. Abilities are enforced here as well as in the form
     // requests, so a hidden sidebar link is never the only thing stopping a

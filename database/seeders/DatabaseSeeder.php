@@ -2,12 +2,13 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
+    // Deliberately NOT using WithoutModelEvents. Customers and subscriptions
+    // generate their account number and code in a creating hook, and muting
+    // model events would leave those columns unset.
 
     /**
      * Seeds the reference data the application needs in order to run.
@@ -26,6 +27,8 @@ class DatabaseSeeder extends Seeder
             SystemSettingSeeder::class,
             // Depends on RoleAndPermissionSeeder having run first.
             UserSeeder::class,
+            // Sample data. Skips itself if any customer already exists.
+            CustomerSeeder::class,
         ]);
     }
 }

@@ -34,6 +34,38 @@
                 </li>
             </ul>
 
+            @can('customers.view')
+                <div class="app-sidebar__heading">Customers</div>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('customers.index') && ! request()->hasAny(['status', 'archived']) ? 'active' : '' }}"
+                           href="{{ route('customers.index') }}">
+                            <i class="bi bi-people"></i> All Customers
+                        </a>
+                    </li>
+                    @can('customers.create')
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('customers.create') ? 'active' : '' }}"
+                               href="{{ route('customers.create') }}">
+                                <i class="bi bi-person-plus"></i> Add Customer
+                            </a>
+                        </li>
+                    @endcan
+                    @foreach ([
+                        'active' => ['Active Customers', 'person-check'],
+                        'inactive' => ['Inactive Customers', 'person-dash'],
+                        'suspended' => ['Suspended Customers', 'person-exclamation'],
+                    ] as $value => [$label, $icon])
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('customers.index') && request('status') === $value ? 'active' : '' }}"
+                               href="{{ route('customers.index', ['status' => $value]) }}">
+                                <i class="bi bi-{{ $icon }}"></i> {{ $label }}
+                            </a>
+                        </li>
+                    @endforeach
+                </ul>
+            @endcan
+
             @canany(['users.view', 'roles.view'])
                 <div class="app-sidebar__heading">Administration</div>
                 <ul class="nav flex-column">

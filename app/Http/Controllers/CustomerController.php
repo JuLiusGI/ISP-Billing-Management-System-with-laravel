@@ -1,0 +1,153 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Enums\CustomerAccountStatus;
+use App\Enums\CustomerConnectionStatus;
+use App\Enums\CustomerStatus;
+use App\Enums\CustomerType;
+use App\Http\Requests\StoreCustomerRequest;
+use App\Http\Requests\UpdateCustomerRequest;
+use App\Models\Customer;
+use App\Services\CustomerService;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\View\View;
+use RuntimeException;
+
+class CustomerController extends Controller
+{
+    public function __construct(private readonly CustomerService $customers) {}
+
+    public function index(Request $request): View
+    {
+        $this->authorize('viewAny', Customer::class);
+
+        $customers = Customer::query()
+            ->with('primaryAddress')
+            // Archived rows are opt-in, so the default list is the live one.
+            ->when($request->boolean('archived'), fn (Builder $q) => $q->onlyTrashed())
+            ->search($request->string('search')->toString() ?: null)
+            ->when($request->filled('status'), fn (Builder $q) => $q->where('status', $request->string('status')))
+            ->when($request->filled('account_status'), fn (Builder $q) => $q->where('account_status', $request->string('account_status')))
+            ->when($request->filled('type'), fn (Builder $q) => $q->where('customer_type', $request->string('type')))
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->paginate(15)
+            ->withQueryString();
+
+        return view('customers.index', [
+            'customers' => $customers,
+            'statuses' => CustomerStatus::cases(),
+            'accountStatuses' => CustomerAccountStatus::cases(),
+            'types' => CustomerType::cases(),
+        ]);
+    }
+
+    public function create(): View
+    {
+        $this->authorize('create', Customer::class);
+
+        return view('customers.create', $this->formOptions());
+    }
+
+    public function store(StoreCustomerRequest $request): RedirectResponse
+    {
+        $customer = $this->customers->create(
+            $request->customerAttributes(),
+            $request->addressAttributes(),
+            $request->contactAttributes(),
+            $request->file('photo'),
+            $request->user(),
+        );
+
+        return redirect()
+            ->route('customers.show', $customer)
+            ->with('success', "{$customer->full_name} has been added as {$customer->account_number}.");
+    }
+
+    public function show(Customer $customer): View
+    {
+        $this->authorize('view', $customer);
+
+        $customer->load([
+            'primaryAddress', 'addresses', 'contacts', 'createdBy',
+            'subscriptions.internetPlan',
+            'serviceStatusLogs.changedBy',
+        ]);
+
+        return view('customers.show', [
+            'customer' => $customer,
+            // Billing history is read live; it fills in as those modules land.
+            'invoices' => $customer->invoices()->latest('invoice_date')->limit(10)->get(),
+            'payments' => $customer->payments()->latest('payment_date')->limit(10)->get(),
+            'outstandingBalance' => $customer->outstandingBalance(),
+            'totalInvoiced' => $customer->invoices()->sum('total_amount'),
+            'totalPaid' => $customer->payments()->completed()->sum('amount'),
+        ]);
+    }
+
+    public function edit(Customer $customer): View
+    {
+        $this->authorize('update', $customer);
+
+        return view('customers.edit', $this->formOptions() + [
+            'customer' => $customer->load('primaryAddress', 'contacts'),
+        ]);
+    }
+
+    public function update(UpdateCustomerRequest $request, Customer $customer): RedirectResponse
+    {
+        $this->customers->update(
+            $customer,
+            $request->customerAttributes(),
+            $request->addressAttributes(),
+            $request->contactAttributes(),
+            $request->file('photo'),
+        );
+
+        return redirect()
+            ->route('customers.show', $customer)
+            ->with('success', "{$customer->full_name} has been updated.");
+    }
+
+    public function destroy(Customer $customer): RedirectResponse
+    {
+        $this->authorize('delete', $customer);
+
+        try {
+            $this->customers->archive($customer);
+        } catch (RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return redirect()
+            ->route('customers.index')
+            ->with('success', "{$customer->full_name} has been archived.");
+    }
+
+    public function restore(int $customer): RedirectResponse
+    {
+        $archived = Customer::onlyTrashed()->findOrFail($customer);
+
+        $this->authorize('restore', $archived);
+
+        $this->customers->restore($archived);
+
+        return redirect()
+            ->route('customers.show', $archived)
+            ->with('success', "{$archived->full_name} has been restored.");
+    }
+
+    /** @return array<string, mixed> */
+    private function formOptions(): array
+    {
+        return [
+            'statuses' => CustomerStatus::cases(),
+            'accountStatuses' => CustomerAccountStatus::cases(),
+            'connectionStatuses' => CustomerConnectionStatus::cases(),
+            'types' => CustomerType::cases(),
+        ];
+    }
+}
