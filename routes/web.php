@@ -8,6 +8,7 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InternetPlanController;
 use App\Http\Controllers\InvoiceController;
+use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SubscriptionController;
@@ -103,6 +104,15 @@ Route::middleware(['auth', 'active'])->group(function (): void {
         Route::get('{invoice}/edit', 'edit')->middleware('permission:invoices.update')->name('edit');
         Route::put('{invoice}', 'update')->middleware('permission:invoices.update')->name('update');
         Route::patch('{invoice}/cancel', 'cancel')->middleware('permission:invoices.cancel')->name('cancel');
+    });
+
+    Route::controller(PaymentController::class)->prefix('payments')->name('payments.')->group(function (): void {
+        Route::get('/', 'index')->middleware('permission:payments.view')->name('index');
+        Route::get('create', 'create')->middleware('permission:payments.create')->name('create');
+        Route::post('/', 'store')->middleware('permission:payments.create')->name('store');
+        Route::get('{payment}', 'show')->middleware('permission:payments.view')->name('show');
+        Route::post('{payment}/allocate', 'allocate')->middleware('permission:payments.create')->name('allocate');
+        Route::patch('{payment}/reverse', 'reverse')->middleware('permission:payments.reverse')->name('reverse');
     });
 
     // Administration. Abilities are enforced here as well as in the form

@@ -6,9 +6,9 @@ XAMPP (Apache + MariaDB/MySQL) stack.
 
 > **Project status: in development.** Authentication, role-based access control,
 > staff user management, customers, internet plans, subscriptions, the billing
-> engine and invoice management are working on the full schema. The remaining
-> modules (payments, receipts, expenses, reports, analytics, audit logs and
-> settings) are not implemented yet.
+> engine, invoice management and payment processing are working on the full
+> schema. The remaining modules (receipts, expenses, reports, analytics, audit
+> logs and settings) are not implemented yet.
 
 ## Requirements
 
@@ -316,6 +316,36 @@ Every invoice has a printer-friendly version at `/invoices/{id}/print`, headed
 with the company details from system settings and driven by the browser's own
 print dialog.
 
+## Payments
+
+A **payment** is money received. An **allocation** is that money being applied
+to a particular invoice. Keeping the two apart is what makes the awkward cases
+ordinary:
+
+- One payment can settle several invoices.
+- Several payments can settle one invoice.
+- An overpayment sits as **unapplied credit** on the payment rather than being
+  forced onto an invoice that does not owe it. The credit can be applied later
+  from the payment's own page, and shows on the customer profile.
+
+Recording a payment opens the customer's outstanding invoices in an allocation
+grid, with an "apply oldest first" button that does what a cashier taking a
+lump sum would do by hand. Applying more than was received is refused, as is
+applying more than an invoice owes, applying to another customer's invoice, and
+applying to a cancelled invoice. If any line of an allocation fails the whole
+payment rolls back — a half-applied payment is never left behind.
+
+Invoices are locked (`SELECT … FOR UPDATE`) while their balance is read and
+changed, so two cashiers taking money for the same invoice at once cannot both
+allocate against the same balance.
+
+**Reversal, not deletion.** A bounced cheque or a mis-keyed entry is reversed:
+the payment row and its allocations stay exactly where they are, the status is
+what stops the money counting, and the invoices it touched are recalculated so
+their balances come back. Reversing needs `payments.reverse`, a separate
+ability from `payments.create` — a cashier records money; undoing it is an
+accounting correction.
+
 ## Testing
 
 Create the test database once:
@@ -342,6 +372,7 @@ database. The development database `isp_billing` is never touched by the suite.
 | `APP_NAME` | Application name shown in the UI. Defaults to `ISP Billing`. |
 | `APP_URL` | Base URL used for generated links and assets. |
 | `APP_DEBUG` | Must be `false` in production. |
+| `APP_TIMEZONE` | The ISP's own clock. Defaults to `Asia/Manila`. Invoice dates, billing days and "not in the future" checks all read it, so a server running in UTC would reject same-day payments for part of the day. |
 | `DB_CONNECTION` / `DB_HOST` / `DB_PORT` / `DB_DATABASE` / `DB_USERNAME` / `DB_PASSWORD` | Database connection. |
 | `SESSION_DRIVER`, `CACHE_STORE`, `QUEUE_CONNECTION` | Default to `database`. |
 | `MAIL_*` | Mail transport. Defaults to the `log` driver in development. Password reset needs a working mailer. |

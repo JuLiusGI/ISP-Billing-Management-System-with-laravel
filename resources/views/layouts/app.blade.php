@@ -116,6 +116,32 @@
                 </ul>
             @endcanany
 
+            @can('payments.view')
+                <div class="app-sidebar__heading">Payments</div>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('payments.index') && ! request()->hasAny(['from', 'to']) ? 'active' : '' }}"
+                           href="{{ route('payments.index') }}">
+                            <i class="bi bi-cash-coin"></i> Payments
+                        </a>
+                    </li>
+                    @can('payments.create')
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('payments.create') ? 'active' : '' }}"
+                               href="{{ route('payments.create') }}">
+                                <i class="bi bi-plus-circle"></i> Record Payment
+                            </a>
+                        </li>
+                    @endcan
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('payments.index') && request('from') ? 'active' : '' }}"
+                           href="{{ route('payments.index', ['from' => now()->startOfMonth()->toDateString()]) }}">
+                            <i class="bi bi-clock-history"></i> Payment History
+                        </a>
+                    </li>
+                </ul>
+            @endcan
+
             @canany(['plans.view', 'subscriptions.view'])
                 <div class="app-sidebar__heading">Internet Services</div>
                 <ul class="nav flex-column">

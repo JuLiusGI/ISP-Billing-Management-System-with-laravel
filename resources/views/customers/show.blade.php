@@ -61,8 +61,9 @@
             ['label' => 'Outstanding balance', 'value' => $outstandingBalance, 'accent' => 'danger'],
             ['label' => 'Total invoiced', 'value' => $totalInvoiced, 'accent' => 'primary'],
             ['label' => 'Total paid', 'value' => $totalPaid, 'accent' => 'success'],
+            ['label' => 'Unapplied credit', 'value' => $availableCredit, 'accent' => 'warning'],
         ] as $stat)
-            <div class="col-12 col-sm-4">
+            <div class="col-6 col-lg-3">
                 <div class="card border-0 h-100">
                     <div class="card-body">
                         <div class="text-secondary small">{{ $stat['label'] }}</div>
@@ -256,6 +257,15 @@
 
             {{-- Payments --}}
             <div class="tab-pane fade" id="tab-payments" role="tabpanel">
+                @can('payments.create')
+                    <div class="d-flex justify-content-end mb-2">
+                        <a href="{{ route('payments.create', ['customer' => $customer->id]) }}"
+                           class="btn btn-sm btn-primary">
+                            <i class="bi bi-cash-coin me-1"></i> Record payment
+                        </a>
+                    </div>
+                @endcan
+
                 @if ($payments->isEmpty())
                     <div class="empty-state">
                         <i class="bi bi-cash-coin"></i>
@@ -273,7 +283,11 @@
                             <tbody>
                                 @foreach ($payments as $payment)
                                     <tr>
-                                        <td><code class="small">{{ $payment->payment_reference }}</code></td>
+                                        <td>
+                                            <a href="{{ route('payments.show', $payment) }}" class="text-decoration-none">
+                                                <code class="small">{{ $payment->payment_reference }}</code>
+                                            </a>
+                                        </td>
                                         <td class="small">{{ $payment->payment_date->format('d M Y') }}</td>
                                         <td class="small">{{ $payment->payment_method->label() }}</td>
                                         <td class="text-end small">&#8369;{{ number_format((float) $payment->amount, 2) }}</td>
