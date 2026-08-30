@@ -8,6 +8,7 @@ use App\Enums\CustomerStatus;
 use App\Enums\CustomerType;
 use App\Enums\InvoiceStatus;
 use App\Models\Concerns\Auditable;
+use App\Support\Money;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -147,9 +148,11 @@ class Customer extends Model
      */
     public function outstandingBalance(): string
     {
-        return (string) $this->invoices()
+        // Normalised: SUM() over a customer with no open invoices returns 0,
+        // which then reads differently from every other amount shown.
+        return Money::of($this->invoices()
             ->whereIn('status', array_map(fn (InvoiceStatus $s) => $s->value, InvoiceStatus::outstanding()))
-            ->sum('balance_due');
+            ->sum('balance_due'));
     }
 
     // -----------------------------------------------------------------

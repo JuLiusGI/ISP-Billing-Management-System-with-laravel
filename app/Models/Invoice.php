@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\InvoiceStatus;
 use App\Enums\PaymentStatus;
 use App\Models\Concerns\Auditable;
+use App\Support\Money;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -133,17 +134,17 @@ class Invoice extends Model
     /** Total settled against this invoice by payments that still count. */
     public function allocatedTotal(): string
     {
-        return (string) $this->allocations()
+        return Money::of($this->allocations()
             ->whereHas('payment', fn (Builder $q) => $q->where('status', PaymentStatus::Completed))
-            ->sum('amount');
+            ->sum('amount'));
     }
 
     /** Invoice total less valid allocated payments, floored at zero. */
     public function calculatedBalance(): string
     {
-        $balance = bcsub((string) $this->total_amount, $this->allocatedTotal(), 2);
-
-        return bccomp($balance, '0', 2) === -1 ? '0.00' : $balance;
+        return Money::atLeastZero(
+            bcsub((string) $this->total_amount, $this->allocatedTotal(), 2)
+        );
     }
 
     public function isOverdue(): bool

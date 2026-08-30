@@ -67,6 +67,28 @@ class InvoiceFactory extends Factory
         });
     }
 
+    /**
+     * An invoice for a given amount, with its subtotal, total and balance
+     * consistent.
+     *
+     * Setting total_amount alone leaves subtotal at the random default, and
+     * the first recalculation then corrects the total back to that subtotal —
+     * which reads as the application losing money that was never there. Use
+     * this rather than overriding the columns individually.
+     */
+    public function ofAmount(float|int|string $total): static
+    {
+        return $this->state(fn () => [
+            'subtotal' => $total,
+            'total_amount' => $total,
+            'amount_paid' => 0,
+            'balance_due' => $total,
+            'discount_total' => 0,
+            'charges_total' => 0,
+            'tax_total' => 0,
+        ]);
+    }
+
     public function draft(): static
     {
         return $this->state(fn () => ['status' => InvoiceStatus::Draft]);

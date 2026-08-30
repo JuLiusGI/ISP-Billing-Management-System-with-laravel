@@ -753,6 +753,30 @@ SQLite. This is deliberate: SQLite has no true `DECIMAL` type, so monetary
 assertions could pass under SQLite and still be wrong against the real billing
 database. The development database `isp_billing` is never touched by the suite.
 
+### Financial integrity
+
+`FinancialIntegrityTest` checks the invariants that span modules, which no
+per-module suite would notice breaking:
+
+- **The books balance.** For every invoice, the stored `amount_paid` equals the
+  sum of its completed allocations and `balance_due` is the remainder floored at
+  zero. Asserted after each step of a full lifecycle — bill, part-pay, settle,
+  spread one payment across two invoices, reverse it, pay again, receipt.
+- **The dashboard and the reports agree.** Both compute receivables, overdue and
+  revenue by different routes; if they disagree, one of them is wrong.
+- **The ageing buckets sum to their own total.** An ageing report whose buckets
+  do not add up is worthless.
+- **Reversed money disappears from every view of it** — revenue, dashboard,
+  customer balance and receivables alike.
+
+### Writing invoice fixtures
+
+Use `Invoice::factory()->ofAmount(1500)` rather than setting `total_amount`
+directly. Overriding the total alone leaves `subtotal` at the factory's random
+default, and the first recalculation corrects the total back to that subtotal —
+which reads as the application losing money that was never there, and makes any
+test that later records a payment non-deterministic.
+
 ## Environment variables
 
 | Variable | Purpose |
