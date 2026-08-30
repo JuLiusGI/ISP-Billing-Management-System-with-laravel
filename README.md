@@ -7,9 +7,9 @@ XAMPP (Apache + MariaDB/MySQL) stack.
 > **Project status: in development.** Authentication, role-based access control,
 > staff user management, customers, internet plans, subscriptions, service
 > management, the billing engine, invoice management, payment processing,
-> receipts, expenses, reports and the analytics dashboard are working on the
-> full schema. The remaining modules (audit logs and system settings) are not
-> implemented yet.
+> receipts, expenses, reports, the analytics dashboard and audit logging are
+> working on the full schema. System settings and notifications are the
+> remaining modules.
 
 ## Requirements
 
@@ -482,6 +482,44 @@ Money figures come back from `SUM()` as `0` when there are no rows, which reads
 differently from every other amount on the page, so both the dashboard and the
 report services normalise sums through a `money()` helper using bcmath rather
 than a float cast.
+
+## Audit logs
+
+**Administration → Audit Logs** records who did what, from where. Filterable by
+module, action, user, date range and free text; each entry opens to a
+field-by-field before/after.
+
+Model changes are captured by the `Auditable` trait rather than by remembering
+to log at each call site. It is applied to the nine models whose history
+matters — customers, subscriptions, plans, invoices, payments, expenses, users,
+roles and settings — and deliberately not to everything, since a log of cache
+rows and pivot writes would bury the entries someone actually needs.
+
+Authentication has no model write behind it, so it hangs off the framework's
+own events: sign-in, sign-out, **failed attempts** and throttling. Failures
+matter more than successes here — a run of them against one address is the
+shape of an attack, and is invisible if only successes are recorded. The
+address tried is stored; the password never is.
+
+Four properties worth knowing:
+
+- **Update entries carry only what changed.** Storing the whole row twice would
+  make a one-field correction indistinguishable from a rewrite of the record.
+- **The trail rolls back with what it describes.** Writes run inside the
+  caller's transaction, so an entry cannot survive a change that was undone.
+- **A failure to write the trail is logged, never thrown.** Losing an audit row
+  is bad; refusing a customer's payment because the audit table is unavailable
+  is worse.
+- **Secrets are redacted centrally** — passwords and tokens are stripped in
+  `AuditLogger` whether or not the model remembered to exclude them.
+
+The trail is read-only. There is no create, update or delete route, and a test
+asserts none exists: an audit log editable from the interface it audits is not
+evidence of anything.
+
+Service status changes appear in two places on purpose — `service_status_logs`
+is the domain record of what happened to the line, while the audit trail is
+where someone auditing an account looks first.
 
 ## Reports
 

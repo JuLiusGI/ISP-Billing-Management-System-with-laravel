@@ -7,6 +7,7 @@ use App\Enums\CustomerConnectionStatus;
 use App\Enums\CustomerStatus;
 use App\Enums\CustomerType;
 use App\Enums\InvoiceStatus;
+use App\Models\Concerns\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -17,7 +18,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Customer extends Model
 {
-    use HasFactory, SoftDeletes;
+    use Auditable, HasFactory, SoftDeletes;
 
     /** @var list<string> */
     protected $fillable = [
@@ -183,5 +184,19 @@ class Customer extends Model
                 ->orWhere('email', 'like', $like)
                 ->orWhere('contact_number', 'like', $like);
         });
+    }
+
+    // -----------------------------------------------------------------
+    // Audit trail
+    // -----------------------------------------------------------------
+
+    protected function auditModule(): string
+    {
+        return 'Customers';
+    }
+
+    protected function auditLabel(): string
+    {
+        return $this->account_number.' - '.$this->full_name;
     }
 }

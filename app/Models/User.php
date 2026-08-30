@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\UserStatus;
+use App\Models\Concerns\Auditable;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -16,7 +17,7 @@ use Illuminate\Support\Collection;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable, SoftDeletes;
+    use Auditable, HasFactory, Notifiable, SoftDeletes;
 
     /** @var list<string> */
     protected $fillable = [
@@ -152,5 +153,27 @@ class User extends Authenticatable
     public function scopeWithRole(Builder $query, string $role): void
     {
         $query->whereHas('roles', fn (Builder $q) => $q->where('name', $role));
+    }
+
+    // -----------------------------------------------------------------
+    // Audit trail
+    // -----------------------------------------------------------------
+
+    /**
+     * Sign-in bookkeeping is covered by the authentication events;
+     * logging it here as well would bury real account changes.
+     *
+     * @var array<int, string>
+     */
+    protected array $auditExclude = ['last_login_at', 'last_login_ip'];
+
+    protected function auditModule(): string
+    {
+        return 'Administration';
+    }
+
+    protected function auditLabel(): string
+    {
+        return $this->full_name;
     }
 }

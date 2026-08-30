@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
@@ -189,6 +190,12 @@ Route::middleware(['auth', 'active'])->group(function (): void {
         Route::get('{user}/edit', 'edit')->middleware('permission:users.update')->name('edit');
         Route::put('{user}', 'update')->middleware('permission:users.update')->name('update');
         Route::delete('{user}', 'destroy')->middleware('permission:users.delete')->name('destroy');
+    });
+
+    // Read-only by design: the trail has no create, update or delete route.
+    Route::controller(AuditLogController::class)->prefix('audit-logs')->name('audit-logs.')->group(function (): void {
+        Route::get('/', 'index')->middleware('permission:audit_logs.view')->name('index');
+        Route::get('{auditLog}', 'show')->middleware('permission:audit_logs.view')->name('show');
     });
 
     Route::controller(RoleController::class)->prefix('roles')->name('roles.')->group(function (): void {

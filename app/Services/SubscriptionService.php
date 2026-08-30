@@ -115,6 +115,25 @@ class SubscriptionService
             $this->log($subscription, $from, $target, $reason, $actor, $automatic);
             $this->syncCustomerConnection($subscription);
 
+            // service_status_logs is the domain record of what happened to the
+            // line; this is the same event in the cross-module trail, where
+            // someone auditing an account looks first.
+            app(AuditLogger::class)->log(
+                action: 'service_status_changed',
+                module: 'Subscriptions',
+                subject: $subscription,
+                description: sprintf(
+                    '%s: %s to %s%s',
+                    $subscription->subscription_code,
+                    $from->label(),
+                    $target->label(),
+                    $reason ? ' — '.$reason : ''
+                ),
+                old: ['status' => $from->value],
+                new: ['status' => $target->value],
+                actor: $actor,
+            );
+
             return $subscription->refresh();
         });
 

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\ConnectionType;
 use App\Enums\SubscriptionStatus;
+use App\Models\Concerns\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -13,7 +14,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Subscription extends Model
 {
-    use HasFactory, SoftDeletes;
+    use Auditable, HasFactory, SoftDeletes;
 
     /** @var list<string> */
     protected $fillable = [
@@ -138,5 +139,19 @@ class Subscription extends Model
     public function scopeExpiringBefore(Builder $query, \DateTimeInterface $date): void
     {
         $query->whereNotNull('expiration_date')->where('expiration_date', '<=', $date);
+    }
+
+    // -----------------------------------------------------------------
+    // Audit trail
+    // -----------------------------------------------------------------
+
+    protected function auditModule(): string
+    {
+        return 'Subscriptions';
+    }
+
+    protected function auditLabel(): string
+    {
+        return $this->subscription_code;
     }
 }

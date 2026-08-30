@@ -242,7 +242,7 @@
                 </ul>
             @endcan
 
-            @canany(['users.view', 'roles.view'])
+            @canany(['users.view', 'roles.view', 'audit_logs.view'])
                 <div class="app-sidebar__heading">Administration</div>
                 <ul class="nav flex-column">
                     @can('users.view')
@@ -258,6 +258,14 @@
                             <a class="nav-link {{ request()->routeIs('roles.*') ? 'active' : '' }}"
                                href="{{ route('roles.index') }}">
                                 <i class="bi bi-shield-lock"></i> Roles &amp; permissions
+                            </a>
+                        </li>
+                    @endcan
+                    @can('audit_logs.view')
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('audit-logs.*') ? 'active' : '' }}"
+                               href="{{ route('audit-logs.index') }}">
+                                <i class="bi bi-journal-text"></i> Audit Logs
                             </a>
                         </li>
                     @endcan

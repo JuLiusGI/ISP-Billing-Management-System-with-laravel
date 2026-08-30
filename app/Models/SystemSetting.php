@@ -3,13 +3,14 @@
 namespace App\Models;
 
 use App\Enums\SettingType;
+use App\Models\Concerns\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class SystemSetting extends Model
 {
-    use HasFactory;
+    use Auditable, HasFactory;
 
     /** @var list<string> */
     protected $fillable = [
@@ -39,5 +40,19 @@ class SystemSetting extends Model
     public function scopeGroup(Builder $query, string $group): void
     {
         $query->where('group', $group);
+    }
+
+    // -----------------------------------------------------------------
+    // Audit trail
+    // -----------------------------------------------------------------
+
+    protected function auditModule(): string
+    {
+        return 'Settings';
+    }
+
+    protected function auditLabel(): string
+    {
+        return $this->key;
     }
 }

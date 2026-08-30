@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Role extends Model
 {
-    use HasFactory;
+    use Auditable, HasFactory;
 
     public const SUPER_ADMIN = 'super-admin';
 
@@ -51,5 +52,19 @@ class Role extends Model
     public function hasPermission(string $permission): bool
     {
         return $this->permissions->contains('name', $permission);
+    }
+
+    // -----------------------------------------------------------------
+    // Audit trail
+    // -----------------------------------------------------------------
+
+    protected function auditModule(): string
+    {
+        return 'Administration';
+    }
+
+    protected function auditLabel(): string
+    {
+        return $this->display_name;
     }
 }

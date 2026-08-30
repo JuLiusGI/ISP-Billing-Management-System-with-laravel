@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\PaymentMethod;
 use App\Enums\PaymentStatus;
+use App\Models\Concerns\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -14,7 +15,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Payment extends Model
 {
-    use HasFactory, SoftDeletes;
+    use Auditable, HasFactory, SoftDeletes;
 
     /** @var list<string> */
     protected $fillable = [
@@ -120,5 +121,19 @@ class Payment extends Model
     public function scopeMethod(Builder $query, PaymentMethod|string $method): void
     {
         $query->where('payment_method', $method instanceof PaymentMethod ? $method->value : $method);
+    }
+
+    // -----------------------------------------------------------------
+    // Audit trail
+    // -----------------------------------------------------------------
+
+    protected function auditModule(): string
+    {
+        return 'Payments';
+    }
+
+    protected function auditLabel(): string
+    {
+        return $this->payment_reference;
     }
 }

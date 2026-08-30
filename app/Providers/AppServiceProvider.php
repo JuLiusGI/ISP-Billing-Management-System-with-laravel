@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Contracts\ServiceProvisioner;
+use App\Models\AuditLog;
 use App\Models\Customer;
 use App\Models\Expense;
 use App\Models\ExpenseCategory;
@@ -13,6 +14,7 @@ use App\Models\Receipt;
 use App\Models\Role;
 use App\Models\Subscription;
 use App\Models\User;
+use App\Policies\AuditLogPolicy;
 use App\Policies\CustomerPolicy;
 use App\Policies\ExpenseCategoryPolicy;
 use App\Policies\ExpensePolicy;
@@ -43,6 +45,13 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        /*
+         * Authentication auditing is NOT registered here. Laravel discovers
+         * handle* methods in app/Listeners that type-hint an event, so
+         * RecordAuthenticationActivity is already wired up; registering it
+         * again would double every sign-in entry.
+         */
+
         Gate::policy(User::class, UserPolicy::class);
         Gate::policy(Role::class, RolePolicy::class);
         Gate::policy(Customer::class, CustomerPolicy::class);
@@ -53,6 +62,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Receipt::class, ReceiptPolicy::class);
         Gate::policy(Expense::class, ExpensePolicy::class);
         Gate::policy(ExpenseCategory::class, ExpenseCategoryPolicy::class);
+        Gate::policy(AuditLog::class, AuditLogPolicy::class);
 
         /*
          * Resolves dot-namespaced abilities ("invoices.create") against the

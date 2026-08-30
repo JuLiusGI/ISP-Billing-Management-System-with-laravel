@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\InvoiceStatus;
 use App\Enums\PaymentStatus;
+use App\Models\Concerns\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -14,7 +15,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Invoice extends Model
 {
-    use HasFactory, SoftDeletes;
+    use Auditable, HasFactory, SoftDeletes;
 
     /** @var list<string> */
     protected $fillable = [
@@ -186,5 +187,19 @@ class Invoice extends Model
     public function scopeIssuedBetween(Builder $query, \DateTimeInterface $from, \DateTimeInterface $to): void
     {
         $query->whereBetween('invoice_date', [$from, $to]);
+    }
+
+    // -----------------------------------------------------------------
+    // Audit trail
+    // -----------------------------------------------------------------
+
+    protected function auditModule(): string
+    {
+        return 'Billing';
+    }
+
+    protected function auditLabel(): string
+    {
+        return $this->invoice_number;
     }
 }

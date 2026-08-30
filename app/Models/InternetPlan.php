@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\PlanBillingCycle;
 use App\Enums\SpeedUnit;
+use App\Models\Concerns\Auditable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -12,7 +13,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class InternetPlan extends Model
 {
-    use HasFactory, SoftDeletes;
+    use Auditable, HasFactory, SoftDeletes;
 
     /** @var list<string> */
     protected $fillable = [
@@ -68,5 +69,19 @@ class InternetPlan extends Model
     public function scopeActive(Builder $query): void
     {
         $query->where('is_active', true);
+    }
+
+    // -----------------------------------------------------------------
+    // Audit trail
+    // -----------------------------------------------------------------
+
+    protected function auditModule(): string
+    {
+        return 'Internet Plans';
+    }
+
+    protected function auditLabel(): string
+    {
+        return $this->plan_code.' - '.$this->name;
     }
 }
