@@ -40,7 +40,7 @@ class FinancialReportService
             ->whereBetween('payment_date', [$from->toDateString(), $to->toDateString()])
             ->when($method, fn ($q) => $q->where('payment_method', $method));
 
-        $total = (string) $base()->sum('amount');
+        $total = $this->money($base()->sum('amount'));
         $count = $base()->count();
 
         return [
@@ -80,9 +80,9 @@ class FinancialReportService
 
         return [
             'byStatus' => $byStatus,
-            'invoiced' => (string) (clone $live)->sum('total_amount'),
-            'paid' => (string) (clone $live)->sum('amount_paid'),
-            'outstanding' => (string) (clone $live)->sum('balance_due'),
+            'invoiced' => $this->money((clone $live)->sum('total_amount')),
+            'paid' => $this->money((clone $live)->sum('amount_paid')),
+            'outstanding' => $this->money((clone $live)->sum('balance_due')),
             'count' => $base()->count(),
         ];
     }
@@ -123,13 +123,13 @@ class FinancialReportService
 
             $results[$label] = [
                 'count' => (clone $query)->count(),
-                'total' => (string) (clone $query)->sum('balance_due'),
+                'total' => $this->money((clone $query)->sum('balance_due')),
             ];
         }
 
         return [
             'buckets' => $results,
-            'total' => (string) $this->openInvoices()->sum('balance_due'),
+            'total' => $this->money($this->openInvoices()->sum('balance_due')),
             'topDebtors' => $this->openInvoices()
                 ->join('customers', 'customers.id', '=', 'invoices.customer_id')
                 ->groupBy('customers.id', 'customers.account_number', 'customers.first_name', 'customers.last_name')
@@ -156,7 +156,7 @@ class FinancialReportService
         $base = fn () => $this->openInvoices()->whereDate('due_date', '<', now()->toDateString());
 
         return [
-            'total' => (string) $base()->sum('balance_due'),
+            'total' => $this->money($base()->sum('balance_due')),
             'count' => $base()->count(),
             'buckets' => $base()
                 ->selectRaw("CASE
@@ -185,7 +185,7 @@ class FinancialReportService
             ->when($categoryId, fn ($q) => $q->where('expense_category_id', $categoryId));
 
         return [
-            'total' => (string) $base()->sum('amount'),
+            'total' => $this->money($base()->sum('amount')),
             'count' => $base()->count(),
             'byCategory' => $base()
                 ->join('expense_categories', 'expense_categories.id', '=', 'expenses.expense_category_id')
@@ -214,8 +214,8 @@ class FinancialReportService
         $revenue = $this->revenue($from, $to);
         $expenses = $this->expenses($from, $to);
 
-        $gross = $revenue['total'] ?: '0.00';
-        $spend = $expenses['total'] ?: '0.00';
+        $gross = $revenue['total'];
+        $spend = $expenses['total'];
         $net = bcsub($gross, $spend, 2);
 
         return [
@@ -227,6 +227,18 @@ class FinancialReportService
                 : '0.00',
             'months' => $this->monthlyComparison($from, $to),
         ];
+    }
+
+    /**
+     * Normalises a database SUM() to a two-decimal string.
+     *
+     * SUM() over no rows comes back as 0 rather than 0.00, which then reads
+     * differently from every other money figure on the page. Done with bcadd
+     * rather than a float cast so no precision is lost on the way through.
+     */
+    private function money(mixed $value): string
+    {
+        return bcadd((string) ($value ?: '0'), '0', 2);
     }
 
     /**

@@ -5,3 +5,7 @@ import './bootstrap';
 import * as bootstrap from 'bootstrap';
 
 window.bootstrap = bootstrap;
+
+// Dashboard charts. Self-registering: it looks for its canvases and does
+// nothing on pages that have none.
+import './charts';

@@ -7,8 +7,9 @@ XAMPP (Apache + MariaDB/MySQL) stack.
 > **Project status: in development.** Authentication, role-based access control,
 > staff user management, customers, internet plans, subscriptions, service
 > management, the billing engine, invoice management, payment processing,
-> receipts, expenses and reports are working on the full schema. The remaining
-> modules (analytics dashboard, audit logs and settings) are not implemented yet.
+> receipts, expenses, reports and the analytics dashboard are working on the
+> full schema. The remaining modules (audit logs and system settings) are not
+> implemented yet.
 
 ## Requirements
 
@@ -449,6 +450,38 @@ rights. Billing staff and technicians have no access.
 
 Module-level totals live here; the formal Expense Report belongs to the reports
 module.
+
+## Dashboard
+
+The dashboard is assembled **per role**, and not just visually: the controller
+asks for a panel's data only when the signed-in user holds the ability behind
+it, so a technician's dashboard issues no revenue queries at all rather than
+fetching figures and hiding them in the view.
+
+| Panel | Ability |
+|---|---|
+| Customer statistics, sign-up trend, recent customers | `customers.view` |
+| Service statistics, services-by-state chart | `subscriptions.view` |
+| Billing statistics, invoice-status chart, recent invoices, overdue alert | `invoices.view` |
+| Recent payments | `payments.view` |
+| Revenue / expenses / net, revenue trend chart | `reports.financial` |
+
+A user holding none of these gets an explicit empty state rather than a blank
+page.
+
+Charts are Chart.js, imported through Vite with only the controllers actually
+used registered, so the bundle carries the bar, line and doughnut pieces rather
+than the whole library. Data reaches the canvas as a `data-chart` attribute
+rendered by Blade from real query results.
+
+The twelve-month trends **fill empty months with zero** rather than skipping
+them. A gap in a time series should read as "nothing happened" instead of
+compressing the axis and implying the months were adjacent.
+
+Money figures come back from `SUM()` as `0` when there are no rows, which reads
+differently from every other amount on the page, so both the dashboard and the
+report services normalise sums through a `money()` helper using bcmath rather
+than a float cast.
 
 ## Reports
 
