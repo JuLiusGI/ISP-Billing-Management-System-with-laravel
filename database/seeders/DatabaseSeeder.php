@@ -34,6 +34,9 @@ class DatabaseSeeder extends Seeder
             SubscriptionSeeder::class,
             // Depends on ExpenseCategorySeeder having run first.
             ExpenseSeeder::class,
+            // Depends on subscriptions existing; drives the real billing and
+            // payment services so the seeded figures reconcile like live ones.
+            BillingHistorySeeder::class,
         ]);
     }
 }
