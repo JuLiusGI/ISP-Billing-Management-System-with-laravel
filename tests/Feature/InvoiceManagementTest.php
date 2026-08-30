@@ -271,8 +271,8 @@ class InvoiceManagementTest extends TestCase
 
     public function test_an_invoice_with_a_payment_applied_cannot_be_edited(): void
     {
-        $invoice = Invoice::factory()->create([
-            'total_amount' => 1000, 'balance_due' => 1000, 'status' => InvoiceStatus::Unpaid,
+        $invoice = Invoice::factory()->ofAmount(1000)->create([
+            'status' => InvoiceStatus::Unpaid,
         ]);
         $this->applyPayment($invoice, '400.00');
 
@@ -338,8 +338,8 @@ class InvoiceManagementTest extends TestCase
 
     public function test_an_invoice_with_a_payment_cannot_be_cancelled(): void
     {
-        $invoice = Invoice::factory()->create([
-            'total_amount' => 1000, 'balance_due' => 1000, 'status' => InvoiceStatus::Unpaid,
+        $invoice = Invoice::factory()->ofAmount(1000)->create([
+            'status' => InvoiceStatus::Unpaid,
         ]);
         $this->applyPayment($invoice, '1000.00');
 
