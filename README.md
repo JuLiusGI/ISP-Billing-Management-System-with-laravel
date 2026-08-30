@@ -8,8 +8,8 @@ XAMPP (Apache + MariaDB/MySQL) stack.
 > staff user management, customers, internet plans, subscriptions, service
 > management, the billing engine, invoice management, payment processing,
 > receipts, expenses, reports, the analytics dashboard and audit logging are
-> working on the full schema. System settings and notifications are the
-> remaining modules.
+> working on the full schema, along with system settings and notifications.
+> Automated billing commands and the final review passes remain.
 
 ## Requirements
 
@@ -482,6 +482,67 @@ Money figures come back from `SUM()` as `0` when there are no rows, which reads
 differently from every other amount on the page, so both the dashboard and the
 report services normalise sums through a `money()` helper using bcmath rather
 than a float cast.
+
+## System settings
+
+**Administration → System Settings** holds the values that vary by
+installation. Nothing here is compiled in: the ISP's own name, address and logo
+drive the interface chrome, the sign-in page and the headers of printed invoices
+and receipts, all from `SettingsService::company()` so the two documents cannot
+disagree about who issued them.
+
+| Group | Covers |
+|---|---|
+| Company | ISP name, address, phone, email, website, logo |
+| Billing | Default cycle, grace period, invoice and receipt prefixes, currency and symbol, tax on/off and rate |
+| Service | Automatic suspension on/off, days overdue before suspension, default service status |
+| Notifications | Master switch plus one switch per event |
+
+Each group saves on its own form. A single page saving company details, billing
+rules, suspension policy and notification switches together would let one
+careless save change all four.
+
+Reading is `settings.view`, saving is `settings.update`, so an auditor can be
+shown the configuration without being able to change it. Every change goes
+through the audit trail like any other model write.
+
+`billing.tax_rate` is stored and read as a **string**, not a float. A decimal
+setting exists because the value is money-adjacent, and a float round-trip both
+loses precision and turns a stored `12.50` back into `12.5`.
+
+## Notifications
+
+Five customer notifications: invoice issued, payment received, invoice overdue,
+service suspended, service reactivated. Each sends by mail and is also stored in
+the `notifications` table.
+
+Whether anything goes out is decided in one place, `CustomerNotifier`, by three
+questions: is the master switch on, is this event's switch on, and does the
+customer have an email address at all. Putting that at each dispatch site would
+eventually mean one of the three being forgotten.
+
+- **Sending never blocks the work that triggered it.** Notifications go out
+  after the transaction commits, and a failure is logged rather than thrown — a
+  mail server being down must not cost the ISP the record of money it has taken.
+- **Only meaningful transitions are announced.** Suspension and reactivation
+  are; a move between pending, expired and cancelled is administrative, and
+  mailing about it trains people to ignore the ones that matter.
+- **Reactivation means coming back from suspension**, so a first activation is
+  not announced as "your service is back on".
+
+Mail transport is configured with the `MAIL_*` environment variables, never in
+the database. The default is Laravel's `log` driver, so in development the
+messages land in `storage/logs/laravel.log`.
+
+> Notifications implement `ShouldQueue`. With `QUEUE_CONNECTION=database`, a
+> worker must be running for them to leave the application:
+>
+> ```bash
+> php artisan queue:work
+> ```
+
+Notifications are **off by default** on a fresh install. An installation should
+not start emailing a customer base the moment it is seeded.
 
 ## Audit logs
 
