@@ -13,6 +13,7 @@ use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReceiptController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\SubscriptionController;
@@ -134,6 +135,26 @@ Route::middleware(['auth', 'active'])->group(function (): void {
     Route::post('payments/{payment}/receipt', [ReceiptController::class, 'store'])
         ->middleware('permission:receipts.issue')
         ->name('payments.receipt');
+
+    /*
+     * Reports. Each is gated on the ability covering the data it exposes, not
+     * on one blanket reports ability, so a role only sees reports over records
+     * it could already read.
+     */
+    Route::controller(ReportController::class)->prefix('reports')->name('reports.')->group(function (): void {
+        Route::get('/', 'index')->middleware('permission:reports.view')->name('index');
+
+        Route::get('revenue', 'revenue')->middleware('permission:reports.financial')->name('revenue');
+        Route::get('summary', 'summary')->middleware('permission:reports.financial')->name('summary');
+        Route::get('expenses', 'expenses')->middleware('permission:expenses.view')->name('expenses');
+        Route::get('payments', 'payments')->middleware('permission:payments.view')->name('payments');
+        Route::get('billing', 'billing')->middleware('permission:invoices.view')->name('billing');
+        Route::get('outstanding', 'outstanding')->middleware('permission:invoices.view')->name('outstanding');
+        Route::get('overdue', 'overdue')->middleware('permission:invoices.view')->name('overdue');
+
+        Route::get('customers', 'customers')->middleware('permission:reports.operational')->name('customers');
+        Route::get('services', 'services')->middleware('permission:reports.operational')->name('services');
+    });
 
     // Finance
     Route::controller(ExpenseController::class)->prefix('expenses')->name('expenses.')->group(function (): void {

@@ -7,8 +7,8 @@ XAMPP (Apache + MariaDB/MySQL) stack.
 > **Project status: in development.** Authentication, role-based access control,
 > staff user management, customers, internet plans, subscriptions, service
 > management, the billing engine, invoice management, payment processing,
-> receipts and expenses are working on the full schema. The remaining modules
-> (reports, analytics, audit logs and settings) are not implemented yet.
+> receipts, expenses and reports are working on the full schema. The remaining
+> modules (analytics dashboard, audit logs and settings) are not implemented yet.
 
 ## Requirements
 
@@ -449,6 +449,56 @@ rights. Billing staff and technicians have no access.
 
 Module-level totals live here; the formal Expense Report belongs to the reports
 module.
+
+## Reports
+
+Nine reports, each filterable by date range and exportable to CSV.
+
+| Report | Answers | Ability |
+|---|---|---|
+| Financial Summary | Gross revenue less expenses, month by month | `reports.financial` |
+| Revenue | Money received over time and by method | `reports.financial` |
+| Expense | Operating costs by category and period | `expenses.view` |
+| Payment | Every payment taken in the period | `payments.view` |
+| Billing | Invoices issued and where they ended up | `invoices.view` |
+| Outstanding | Receivables aged by how long they are owed | `invoices.view` |
+| Overdue | Invoices past due, by age | `invoices.view` |
+| Customer | Base by status, type and growth | `reports.operational` |
+| Service | Services by state and plan, plus recurring revenue | `reports.operational` |
+
+Each report is gated on the ability covering the **data it exposes**, not on one
+blanket reports ability, so a role only sees reports over records it could
+already read. Billing staff get receivables and payments; accountants get
+revenue, spend and the summary; technicians get customers and services. The hub
+lists only what the signed-in user may open, so it never offers a link that
+would 403.
+
+Two conventions hold throughout:
+
+- **Revenue means completed payments.** Reversed and cancelled payments stay in
+  the table for the audit trail and are never counted as money received.
+- **Cancelled and void invoices carry no balance** and are excluded from
+  receivables and ageing, though the billing report still counts them as
+  documents issued.
+
+Outstanding and Overdue are deliberately **not** date-filtered. Ageing is a
+statement about today, and letting someone pick a range would produce a number
+that looks like a receivables figure but is not one.
+
+Every total is a `SUM()` and every grouping a `GROUP BY`. Reporting is the one
+place where adding rows up in PHP looks harmless and then falls over once a real
+customer base exists.
+
+A reversed date range is swapped rather than rejected, and an unparseable date
+falls back to the default six-month window: a read-only report should show
+something rather than an error page.
+
+### Export
+
+`?export=csv` on any report streams a UTF-8 CSV (with a BOM, so Excel reads the
+peso sign correctly). Streamed rather than buffered, since the reason to export
+is usually that the range is large. CSV is the only format on purpose — it opens
+in every spreadsheet an ISP office already has.
 
 ## Testing
 

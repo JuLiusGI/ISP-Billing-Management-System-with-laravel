@@ -211,6 +211,37 @@
                 </ul>
             @endcan
 
+            @can('reports.view')
+                <div class="app-sidebar__heading">Reports</div>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('reports.index') ? 'active' : '' }}"
+                           href="{{ route('reports.index') }}">
+                            <i class="bi bi-bar-chart"></i> All Reports
+                        </a>
+                    </li>
+                    @foreach ([
+                        ['reports.financial', 'reports.summary', 'Financial Summary', 'calculator'],
+                        ['reports.financial', 'reports.revenue', 'Revenue Reports', 'graph-up-arrow'],
+                        ['payments.view', 'reports.payments', 'Payment Reports', 'cash-coin'],
+                        ['invoices.view', 'reports.billing', 'Billing Reports', 'receipt'],
+                        ['invoices.view', 'reports.overdue', 'Overdue Reports', 'exclamation-triangle'],
+                        ['expenses.view', 'reports.expenses', 'Expense Reports', 'wallet2'],
+                        ['reports.operational', 'reports.customers', 'Customer Reports', 'people'],
+                        ['reports.operational', 'reports.services', 'Service Reports', 'hdd-network'],
+                    ] as [$ability, $routeName, $label, $icon])
+                        @can($ability)
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs($routeName) ? 'active' : '' }}"
+                                   href="{{ route($routeName) }}">
+                                    <i class="bi bi-{{ $icon }}"></i> {{ $label }}
+                                </a>
+                            </li>
+                        @endcan
+                    @endforeach
+                </ul>
+            @endcan
+
             @canany(['users.view', 'roles.view'])
                 <div class="app-sidebar__heading">Administration</div>
                 <ul class="nav flex-column">
