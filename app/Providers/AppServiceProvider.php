@@ -28,6 +28,7 @@ use App\Policies\UserPolicy;
 use App\Services\Provisioning\NullServiceProvisioner;
 use App\Services\SettingsService;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -63,6 +64,15 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Expense::class, ExpensePolicy::class);
         Gate::policy(ExpenseCategory::class, ExpenseCategoryPolicy::class);
         Gate::policy(AuditLog::class, AuditLogPolicy::class);
+
+        /*
+         * The ISP's own identity is configurable (MASTER_SPEC §42), so the
+         * chrome reads it from settings rather than from config('app.name').
+         * Shared with the layouts only, since that is where it is drawn.
+         */
+        View::composer(['layouts.app', 'layouts.guest'], function ($view): void {
+            $view->with('isp', app(SettingsService::class)->company());
+        });
 
         /*
          * Resolves dot-namespaced abilities ("invoices.create") against the

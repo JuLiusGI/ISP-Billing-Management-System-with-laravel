@@ -76,12 +76,6 @@ class ReceiptService
      */
     public function companyDetails(): array
     {
-        return [
-            'name' => $this->settings->string('company.name', config('app.name')),
-            'address' => $this->settings->string('company.address'),
-            'phone' => $this->settings->string('company.phone'),
-            'email' => $this->settings->string('company.email'),
-            'website' => $this->settings->string('company.website'),
-        ];
+        return $this->settings->company();
     }
 }

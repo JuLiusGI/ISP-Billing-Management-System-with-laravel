@@ -20,7 +20,11 @@ enum SettingType: string
         return match ($this) {
             self::String => $value,
             self::Integer => (int) $value,
-            self::Decimal => (float) $value,
+            // Deliberately left as a string. A decimal setting exists because
+            // the value is money-adjacent, and casting through float both
+            // loses precision and drops the trailing zero, so a stored 12.50
+            // would read back as 12.5.
+            self::Decimal => $value,
             self::Boolean => filter_var($value, FILTER_VALIDATE_BOOLEAN),
             self::Json => json_decode($value, true),
         };

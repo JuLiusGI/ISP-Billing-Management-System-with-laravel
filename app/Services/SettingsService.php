@@ -107,4 +107,95 @@ class SettingsService
     {
         return $this->decimal('billing.tax_rate', '0');
     }
+
+    public function defaultBillingCycle(): string
+    {
+        return $this->string('billing.default_cycle', 'monthly');
+    }
+
+    public function currency(): string
+    {
+        return $this->string('billing.currency', 'PHP');
+    }
+
+    public function currencySymbol(): string
+    {
+        return $this->string('billing.currency_symbol', '₱');
+    }
+
+    // -----------------------------------------------------------------
+    // Company identity
+    // -----------------------------------------------------------------
+
+    /**
+     * The ISP's own details, as printed on invoices and receipts and shown in
+     * the interface.
+     *
+     * One method rather than five call sites reading five keys: the header of a
+     * receipt and the header of an invoice must not be able to disagree.
+     *
+     * @return array{name: string, address: string, phone: string, email: string, website: string, logo: ?string}
+     */
+    public function company(): array
+    {
+        return [
+            'name' => $this->companyName(),
+            'address' => $this->string('company.address'),
+            'phone' => $this->string('company.phone'),
+            'email' => $this->string('company.email'),
+            'website' => $this->string('company.website'),
+            'logo' => $this->companyLogoPath(),
+        ];
+    }
+
+    /** Falls back to the framework's app name so a fresh install is not blank. */
+    public function companyName(): string
+    {
+        return $this->string('company.name') ?: (string) config('app.name');
+    }
+
+    public function companyLogoPath(): ?string
+    {
+        return $this->string('company.logo_path') ?: null;
+    }
+
+    // -----------------------------------------------------------------
+    // Service
+    // -----------------------------------------------------------------
+
+    /**
+     * Whether the scheduler may suspend a line for non-payment on its own.
+     * Off by default: cutting a customer off without a human deciding to is
+     * not something an installation should start doing unasked.
+     */
+    public function autoSuspendEnabled(): bool
+    {
+        return $this->boolean('service.auto_suspend_enabled', false);
+    }
+
+    /** How far past due an invoice must be before automatic suspension. */
+    public function suspendAfterDaysOverdue(): int
+    {
+        return max(1, $this->integer('service.suspend_after_days_overdue', 15));
+    }
+
+    public function defaultServiceStatus(): string
+    {
+        return $this->string('service.default_status', 'pending');
+    }
+
+    // -----------------------------------------------------------------
+    // Notifications
+    // -----------------------------------------------------------------
+
+    /** The master switch. With this off, no notification email is sent at all. */
+    public function emailNotificationsEnabled(): bool
+    {
+        return $this->boolean('notifications.email_enabled', false);
+    }
+
+    public function notifiesOn(string $event): bool
+    {
+        return $this->boolean("notifications.on_{$event}", false);
+    }
 }

@@ -47,6 +47,8 @@ class SystemSettingSeeder extends Seeder
             ['notifications', 'notifications.on_invoice_created', '1', 'boolean', 'Notify on new invoice'],
             ['notifications', 'notifications.on_payment_received', '1', 'boolean', 'Notify on payment received'],
             ['notifications', 'notifications.on_invoice_overdue', '1', 'boolean', 'Notify on overdue invoice'],
+            ['notifications', 'notifications.on_service_suspended', '1', 'boolean', 'Notify on service suspension'],
+            ['notifications', 'notifications.on_service_reactivated', '1', 'boolean', 'Notify on service reactivation'],
         ];
 
         $rows = collect($settings)->map(fn (array $s) => [

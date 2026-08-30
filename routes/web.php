@@ -17,6 +17,7 @@ use App\Http\Controllers\ReceiptController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\ServiceController;
+use App\Http\Controllers\SettingController;
 use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
@@ -190,6 +191,13 @@ Route::middleware(['auth', 'active'])->group(function (): void {
         Route::get('{user}/edit', 'edit')->middleware('permission:users.update')->name('edit');
         Route::put('{user}', 'update')->middleware('permission:users.update')->name('update');
         Route::delete('{user}', 'destroy')->middleware('permission:users.delete')->name('destroy');
+    });
+
+    // Settings are saved one group at a time, so a careless save cannot change
+    // company details, billing rules and suspension policy together.
+    Route::controller(SettingController::class)->prefix('settings')->name('settings.')->group(function (): void {
+        Route::get('/', 'index')->middleware('permission:settings.view')->name('index');
+        Route::put('{group}', 'update')->middleware('permission:settings.update')->name('update');
     });
 
     // Read-only by design: the trail has no create, update or delete route.

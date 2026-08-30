@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>@yield('title', 'Sign in') &middot; {{ config('app.name') }}</title>
+    <title>@yield('title', 'Sign in') &middot; {{ $isp['name'] }}</title>
     @vite(['resources/css/app.scss', 'resources/js/app.js'])
 </head>
 <body class="auth-body">
@@ -12,7 +12,7 @@
     <div class="auth-card card border-0">
         <div class="auth-card__brand">
             <i class="bi bi-router-fill fs-3 text-danger"></i>
-            <span class="fw-semibold fs-5">{{ config('app.name') }}</span>
+            <span class="fw-semibold fs-5">{{ $isp['name'] }}</span>
         </div>
 
         <div class="card-body p-4 p-md-5">
@@ -30,7 +30,7 @@
     </div>
 
     <p class="text-center text-secondary small mt-3 mb-0">
-        &copy; {{ date('Y') }} {{ config('app.name') }}
+        &copy; {{ date('Y') }} {{ $isp['name'] }}
     </p>
 </div>
 

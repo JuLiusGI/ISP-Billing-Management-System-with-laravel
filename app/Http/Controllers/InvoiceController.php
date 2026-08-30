@@ -115,13 +115,9 @@ class InvoiceController extends Controller
 
         return view('invoices.print', [
             'invoice' => $invoice->load(['customer.primaryAddress', 'items', 'allocations.payment']),
-            'company' => [
-                'name' => $this->settings->string('company.name', config('app.name')),
-                'address' => $this->settings->string('company.address'),
-                'phone' => $this->settings->string('company.phone'),
-                'email' => $this->settings->string('company.email'),
-                'website' => $this->settings->string('company.website'),
-            ],
+            // Shared with the receipt header: the two documents must not be
+            // able to disagree about who issued them.
+            'company' => $this->settings->company(),
         ]);
     }
 

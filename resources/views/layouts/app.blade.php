@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'Dashboard') &middot; {{ config('app.name') }}</title>
+    <title>@yield('title', 'Dashboard') &middot; {{ $isp['name'] }}</title>
     @vite(['resources/css/app.scss', 'resources/js/app.js'])
 </head>
 <body class="app-body">
@@ -16,7 +16,7 @@
         <div class="app-sidebar__brand">
             <a href="{{ route('dashboard') }}" class="d-flex align-items-center gap-2 text-white text-decoration-none">
                 <i class="bi bi-router-fill fs-4 text-danger"></i>
-                <span class="fw-semibold">{{ config('app.name') }}</span>
+                <span class="fw-semibold">{{ $isp['name'] }}</span>
             </a>
             <button class="btn btn-sm btn-link text-white-50 d-lg-none p-0" type="button"
                     data-sidebar-close aria-label="Close menu">
@@ -242,7 +242,7 @@
                 </ul>
             @endcan
 
-            @canany(['users.view', 'roles.view', 'audit_logs.view'])
+            @canany(['users.view', 'roles.view', 'audit_logs.view', 'settings.view'])
                 <div class="app-sidebar__heading">Administration</div>
                 <ul class="nav flex-column">
                     @can('users.view')
@@ -266,6 +266,14 @@
                             <a class="nav-link {{ request()->routeIs('audit-logs.*') ? 'active' : '' }}"
                                href="{{ route('audit-logs.index') }}">
                                 <i class="bi bi-journal-text"></i> Audit Logs
+                            </a>
+                        </li>
+                    @endcan
+                    @can('settings.view')
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('settings.*') ? 'active' : '' }}"
+                               href="{{ route('settings.index') }}">
+                                <i class="bi bi-sliders"></i> System Settings
                             </a>
                         </li>
                     @endcan
@@ -335,7 +343,7 @@
         </main>
 
         <footer class="app-footer small text-secondary">
-            &copy; {{ date('Y') }} {{ config('app.name') }}
+            &copy; {{ date('Y') }} {{ $isp['name'] }}
         </footer>
     </div>
 </div>
