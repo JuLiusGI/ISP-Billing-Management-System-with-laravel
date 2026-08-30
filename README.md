@@ -8,8 +8,8 @@ XAMPP (Apache + MariaDB/MySQL) stack.
 > staff user management, customers, internet plans, subscriptions, service
 > management, the billing engine, invoice management, payment processing,
 > receipts, expenses, reports, the analytics dashboard and audit logging are
-> working on the full schema, along with system settings and notifications.
-> Automated billing commands and the final review passes remain.
+> working on the full schema, along with system settings, notifications and
+> automated billing. The final review and documentation passes remain.
 
 ## Requirements
 
@@ -482,6 +482,56 @@ Money figures come back from `SUM()` as `0` when there are no rows, which reads
 differently from every other amount on the page, so both the dashboard and the
 report services normalise sums through a `money()` helper using bcmath rather
 than a float cast.
+
+## Automated billing
+
+Three commands, all safe to run repeatedly:
+
+| Command | Does |
+|---|---|
+| `billing:generate-invoices` | Issues the month's invoices. `--month=YYYY-MM`, `--dry-run` |
+| `billing:update-overdue` | Marks outstanding invoices past their due date |
+| `billing:process-service-status` | Expires lapsed services; suspends overdue ones. `--dry-run` |
+
+They register in `routes/console.php` and need one cron entry:
+
+```cron
+* * * * * cd /path-to-project && php artisan schedule:run >> /dev/null 2>&1
+```
+
+On Windows, point Task Scheduler at `php artisan schedule:run` every minute.
+
+**The order within the day is deliberate.** Invoices at 01:00, the overdue
+sweep at 02:00, service status at 03:00 — so a line is never suspended over an
+invoice that was about to be marked overdue in the same run. A test asserts
+those times rather than trusting the comment.
+
+Each job carries `withoutOverlapping()`, so a slow run cannot be started on top
+of itself. That is belt and braces: repeat-safety is a property of the commands
+themselves.
+
+- Generating twice issues nothing the second time — the subscription is already
+  invoiced for the period, backed by a unique index on
+  `(subscription_id, billing_period_start)`, so two runs racing cannot both win.
+- The overdue sweep no longer matches an invoice it has already marked.
+- Suspension only considers active services, so a second run finds nothing.
+
+**Automatic suspension is off by default and the command says so** rather than
+doing nothing silently. Cutting customers off is not something an installation
+should start doing because a scheduler was switched on. Both the switch and the
+days-overdue threshold live in **Administration → System Settings → Service**.
+Expiry is not configurable: an expiry date that has passed is a fact, not a
+policy decision.
+
+Every automated change goes through `SubscriptionService::changeStatus`, so the
+state machine, service status log, audit trail, customer connection status and
+provisioning hook all still apply. Scheduler-driven changes are flagged
+`is_automatic` and carry no `user_id`, which is what makes the Service History
+filter for "the scheduler" versus "a person" meaningful.
+
+Runs write a summary to the application log as well as the console, since a
+scheduled run has nobody watching its output. A partial failure returns a
+non-zero exit code so it surfaces rather than passing quietly.
 
 ## System settings
 
