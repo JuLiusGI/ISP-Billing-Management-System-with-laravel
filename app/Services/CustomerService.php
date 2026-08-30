@@ -19,6 +19,19 @@ use RuntimeException;
 class CustomerService
 {
     /**
+     * Where a customer's photo lives.
+     *
+     * The private disk, not the public one. A photo of a named customer is
+     * personal data, and anything on the public disk is served straight off
+     * the filesystem with no session behind it — a random filename is
+     * obscurity, not access control. CustomerController::photo() serves these
+     * through the same policy that guards the rest of the record.
+     */
+    public const PHOTO_DISK = 'local';
+
+    public const PHOTO_DIRECTORY = 'customers/photos';
+
+    /**
      * How many times to retry an account number collision.
      *
      * Numbers are derived from the current maximum id, so two requests
@@ -38,7 +51,7 @@ class CustomerService
         $attributes['created_by'] = $actor->id;
 
         if ($photo) {
-            $attributes['photo_path'] = $photo->store('customers/photos', 'public');
+            $attributes['photo_path'] = $this->storePhoto($photo);
         }
 
         for ($attempt = 1; ; $attempt++) {
@@ -73,10 +86,10 @@ class CustomerService
         return DB::transaction(function () use ($customer, $attributes, $address, $contacts, $photo): Customer {
             if ($photo) {
                 $previous = $customer->photo_path;
-                $attributes['photo_path'] = $photo->store('customers/photos', 'public');
+                $attributes['photo_path'] = $this->storePhoto($photo);
 
                 if ($previous) {
-                    Storage::disk('public')->delete($previous);
+                    $this->deletePhoto($previous);
                 }
             }
 
@@ -100,6 +113,25 @@ class CustomerService
 
             return $customer->refresh();
         });
+    }
+
+    private function storePhoto(UploadedFile $photo): string
+    {
+        return $photo->store(self::PHOTO_DIRECTORY, self::PHOTO_DISK);
+    }
+
+    /**
+     * Removes a superseded photo from whichever disk holds it. The public disk
+     * is checked as well so photos written before they moved are still cleaned
+     * up rather than left behind.
+     */
+    private function deletePhoto(string $path): void
+    {
+        foreach ([self::PHOTO_DISK, 'public'] as $disk) {
+            if (Storage::disk($disk)->exists($path)) {
+                Storage::disk($disk)->delete($path);
+            }
+        }
     }
 
     /**

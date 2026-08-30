@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use InvalidArgumentException;
 
 /**
  * The money reports.
@@ -291,6 +292,23 @@ class FinancialReportService
      */
     private function overTime($query, string $dateColumn, string $amountColumn, Carbon $from, Carbon $to): Collection
     {
+        /*
+         * Both column names are interpolated into raw SQL below, so they are
+         * checked against what this method actually supports rather than
+         * trusted. Every call site currently passes a literal, but a private
+         * helper that would inject if someone later handed it request input is
+         * a trap worth closing rather than documenting.
+         */
+        $allowedDateColumns = ['payment_date', 'expense_date', 'invoice_date', 'created_at'];
+        $allowedAmountColumns = ['amount', 'total_amount', 'balance_due'];
+
+        if (! in_array($dateColumn, $allowedDateColumns, true)
+            || ! in_array($amountColumn, $allowedAmountColumns, true)) {
+            throw new InvalidArgumentException(
+                "Refusing to group by [{$dateColumn}]/[{$amountColumn}]: not a known reporting column."
+            );
+        }
+
         $byDay = $from->diffInDays($to) <= 62;
         $format = $byDay ? '%Y-%m-%d' : '%Y-%m';
 

@@ -66,6 +66,9 @@ Route::middleware(['auth', 'active'])->group(function (): void {
         Route::get('create', 'create')->middleware('permission:customers.create')->name('create');
         Route::post('/', 'store')->middleware('permission:customers.create')->name('store');
         Route::get('{customer}', 'show')->middleware('permission:customers.view')->name('show');
+        // Photos are personal data, so they are served through the policy
+        // rather than off the public disk by URL alone.
+        Route::get('{customer}/photo', 'photo')->middleware('permission:customers.view')->name('photo');
         Route::get('{customer}/edit', 'edit')->middleware('permission:customers.update')->name('edit');
         Route::put('{customer}', 'update')->middleware('permission:customers.update')->name('update');
         Route::delete('{customer}', 'destroy')->middleware('permission:customers.delete')->name('destroy');

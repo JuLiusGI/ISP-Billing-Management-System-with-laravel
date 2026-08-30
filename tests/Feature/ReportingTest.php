@@ -411,6 +411,28 @@ class ReportingTest extends TestCase
         }
     }
 
+    public function test_the_trend_grouping_refuses_a_column_it_does_not_recognise(): void
+    {
+        /*
+         * The column names are interpolated into raw SQL. No call site passes
+         * user input today, but a private helper that would inject if one ever
+         * did is worth closing rather than documenting.
+         */
+        $method = new \ReflectionMethod(FinancialReportService::class, 'overTime');
+        $method->setAccessible(true);
+
+        $this->expectException(\InvalidArgumentException::class);
+
+        $method->invoke(
+            $this->financial(),
+            Payment::query(),
+            "payment_date'); DROP TABLE payments; --",
+            'amount',
+            now()->subMonth(),
+            now(),
+        );
+    }
+
     public function test_a_user_with_no_role_reaches_no_reports(): void
     {
         $this->actingAs(User::factory()->create())

@@ -35,7 +35,8 @@ npm install
 cp .env.example .env
 php artisan key:generate
 
-# Customer profile photos are served from the public disk.
+# The company logo on receipts is served from the public disk.
+# Customer photos are not - see Security below.
 php artisan storage:link
 ```
 
@@ -791,6 +792,52 @@ test that later records a payment non-deterministic.
 | `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` | Credentials for the seeded administrator. Change before deployment. |
 
 `.env` is never committed. Copy `.env.example` and fill it in per environment.
+
+## Security
+
+The measures below are the ones that are easy to get wrong quietly, so they are
+written down rather than left to be rediscovered.
+
+**Authorisation is checked twice.** Routes carry a `permission:` middleware and
+controller actions call the policy. The middleware answers "may this role reach
+this screen at all"; the policy answers "may this user act on this particular
+record". Neither is redundant: a route list alone would let anyone holding
+`customers.view` reach any customer, and a policy alone would leave a route open
+if an action ever forgot its check. Three actions are deliberately ungated —
+sign-out and the two password-reset steps — because a user who cannot sign in
+cannot pass a gate.
+
+**Customer photos are private.** They are stored on the `local` disk and served
+by `GET /customers/{customer}/photo`, which applies the same `view` policy as
+the rest of the record and sends `Cache-Control: private` so that no shared
+cache retains one. They are deliberately not on the public disk: anything there
+is served straight off the filesystem with no session behind it, and a random
+filename is obscurity rather than access control. Photos written before this
+change are still read from the public disk so existing records keep working.
+To move them across:
+
+```bash
+mkdir -p storage/app/private/customers/photos
+mv storage/app/public/customers/photos/* storage/app/private/customers/photos/
+```
+
+**Reporting columns are on an allowlist.** `FinancialReportService::overTime()`
+interpolates its date and amount column names into `DATE_FORMAT()` and `SUM()`,
+which no query binding can parameterise. Both names are checked against the
+columns the method actually supports, and an unknown one throws before the
+query is built. Every call site passes a literal today; the check is there so
+that stays safe if one ever starts passing a report filter through.
+
+**Elsewhere the framework's defaults are relied on and left intact.** CSRF
+protection covers every non-`GET` form, with no exclusions in
+`bootstrap/app.php`. Blade escaping is untouched — there is no `{!! !!}` in any
+view. Every model declares `$fillable`, so no request payload can reach a column
+that was not asked for, and the few `forceFill()` calls write computed values
+rather than input. Passwords use the `hashed` cast with `Password::defaults()`.
+
+**Secrets stay out of the repository.** `.env` is untracked and `.env.example`
+ships an empty `APP_KEY`. Session cookie flags are environment-driven: set
+`SESSION_SECURE_COOKIE=true` wherever the app is served over HTTPS.
 
 ## Production considerations
 

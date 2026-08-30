@@ -18,7 +18,7 @@
     <div class="card border-0 mb-3">
         <div class="card-body d-flex flex-wrap align-items-center gap-3">
             @if ($customer->photo_path)
-                <img src="{{ Storage::url($customer->photo_path) }}" alt=""
+                <img src="{{ route('customers.photo', $customer) }}" alt="{{ $customer->full_name }}"
                      class="rounded-circle" style="width:4rem;height:4rem;object-fit:cover;">
             @else
                 <span class="app-avatar" style="width:4rem;height:4rem;font-size:1.25rem;">

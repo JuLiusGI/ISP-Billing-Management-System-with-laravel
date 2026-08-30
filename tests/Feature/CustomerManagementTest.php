@@ -233,8 +233,9 @@ class CustomerManagementTest extends TestCase
             ->assertSessionHasNoErrors();
     }
 
-    public function test_a_profile_photo_is_stored(): void
+    public function test_a_profile_photo_is_stored_on_the_private_disk(): void
     {
+        Storage::fake('local');
         Storage::fake('public');
 
         $this->actingAs($this->userWithRole(Role::BILLING_STAFF))->post(
@@ -245,7 +246,55 @@ class CustomerManagementTest extends TestCase
         $customer = Customer::first();
 
         $this->assertNotNull($customer->photo_path);
-        Storage::disk('public')->assertExists($customer->photo_path);
+
+        // A photo of a named customer is personal data. On the public disk it
+        // would be served straight off the filesystem with no session behind it.
+        Storage::disk('local')->assertExists($customer->photo_path);
+        Storage::disk('public')->assertMissing($customer->photo_path);
+    }
+
+    public function test_a_photo_is_served_only_to_someone_who_may_view_the_customer(): void
+    {
+        Storage::fake('local');
+
+        $this->actingAs($this->userWithRole(Role::BILLING_STAFF))->post(
+            route('customers.store'),
+            $this->validPayload() + ['photo' => UploadedFile::fake()->image('customer.jpg')]
+        );
+
+        $customer = Customer::first();
+
+        // Technicians may view customers; a signed-out visitor may not.
+        $this->actingAs($this->userWithRole(Role::TECHNICIAN))
+            ->get(route('customers.photo', $customer))
+            ->assertOk();
+
+        auth()->logout();
+
+        $this->get(route('customers.photo', $customer))->assertRedirect(route('login'));
+    }
+
+    public function test_a_photo_request_for_a_customer_without_one_is_not_found(): void
+    {
+        $customer = Customer::factory()->create(['photo_path' => null]);
+
+        $this->actingAs($this->userWithRole(Role::BILLING_STAFF))
+            ->get(route('customers.photo', $customer))
+            ->assertNotFound();
+    }
+
+    public function test_a_photo_is_not_cached_by_shared_caches(): void
+    {
+        Storage::fake('local');
+
+        $this->actingAs($this->userWithRole(Role::BILLING_STAFF))->post(
+            route('customers.store'),
+            $this->validPayload() + ['photo' => UploadedFile::fake()->image('customer.jpg')]
+        );
+
+        $this->actingAs($this->userWithRole(Role::BILLING_STAFF))
+            ->get(route('customers.photo', Customer::first()))
+            ->assertHeader('Cache-Control', 'max-age=3600, private');
     }
 
     public function test_a_non_image_upload_is_rejected(): void

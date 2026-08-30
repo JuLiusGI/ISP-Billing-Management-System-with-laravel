@@ -14,8 +14,10 @@ use App\Services\PaymentService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 use RuntimeException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class CustomerController extends Controller
 {
@@ -116,6 +118,34 @@ class CustomerController extends Controller
         return redirect()
             ->route('customers.show', $customer)
             ->with('success', "{$customer->full_name} has been updated.");
+    }
+
+    /**
+     * Serves a customer's photo through the same policy that guards the rest
+     * of their record.
+     *
+     * Photos live on the private disk precisely so they cannot be fetched off
+     * the filesystem by URL alone. Older photos written before the move are
+     * still read from the public disk so existing records keep working.
+     */
+    public function photo(Customer $customer): StreamedResponse
+    {
+        $this->authorize('view', $customer);
+
+        abort_if(blank($customer->photo_path), 404);
+
+        foreach ([CustomerService::PHOTO_DISK, 'public'] as $disk) {
+            if (Storage::disk($disk)->exists($customer->photo_path)) {
+                return Storage::disk($disk)->response(
+                    $customer->photo_path,
+                    null,
+                    // Private: a shared cache must not hold a customer's photo.
+                    ['Cache-Control' => 'private, max-age=3600']
+                );
+            }
+        }
+
+        abort(404);
     }
 
     public function destroy(Customer $customer): RedirectResponse
