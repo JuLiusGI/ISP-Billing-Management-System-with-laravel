@@ -193,6 +193,24 @@
                 </ul>
             @endcanany
 
+            @can('expenses.view')
+                <div class="app-sidebar__heading">Finance</div>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('expenses.*') ? 'active' : '' }}"
+                           href="{{ route('expenses.index') }}">
+                            <i class="bi bi-wallet2"></i> Expenses
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('expense-categories.*') ? 'active' : '' }}"
+                           href="{{ route('expense-categories.index') }}">
+                            <i class="bi bi-tags"></i> Expense Categories
+                        </a>
+                    </li>
+                </ul>
+            @endcan
+
             @canany(['users.view', 'roles.view'])
                 <div class="app-sidebar__heading">Administration</div>
                 <ul class="nav flex-column">

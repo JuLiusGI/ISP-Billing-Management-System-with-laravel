@@ -6,6 +6,8 @@ use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\BillingCycleController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ExpenseCategoryController;
+use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\InternetPlanController;
 use App\Http\Controllers\InvoiceController;
 use App\Http\Controllers\PaymentController;
@@ -132,6 +134,28 @@ Route::middleware(['auth', 'active'])->group(function (): void {
     Route::post('payments/{payment}/receipt', [ReceiptController::class, 'store'])
         ->middleware('permission:receipts.issue')
         ->name('payments.receipt');
+
+    // Finance
+    Route::controller(ExpenseController::class)->prefix('expenses')->name('expenses.')->group(function (): void {
+        Route::get('/', 'index')->middleware('permission:expenses.view')->name('index');
+        Route::get('create', 'create')->middleware('permission:expenses.create')->name('create');
+        Route::post('/', 'store')->middleware('permission:expenses.create')->name('store');
+        Route::get('{expense}', 'show')->middleware('permission:expenses.view')->name('show');
+        Route::get('{expense}/edit', 'edit')->middleware('permission:expenses.update')->name('edit');
+        Route::put('{expense}', 'update')->middleware('permission:expenses.update')->name('update');
+        Route::delete('{expense}', 'destroy')->middleware('permission:expenses.delete')->name('destroy');
+        Route::post('{expense}/restore', 'restore')->middleware('permission:expenses.delete')->name('restore');
+    });
+
+    Route::controller(ExpenseCategoryController::class)
+        ->prefix('expense-categories')
+        ->name('expense-categories.')
+        ->group(function (): void {
+            Route::get('/', 'index')->middleware('permission:expenses.view')->name('index');
+            Route::post('/', 'store')->middleware('permission:expenses.update')->name('store');
+            Route::put('{category}', 'update')->middleware('permission:expenses.update')->name('update');
+            Route::delete('{category}', 'destroy')->middleware('permission:expenses.update')->name('destroy');
+        });
 
     // Administration. Abilities are enforced here as well as in the form
     // requests, so a hidden sidebar link is never the only thing stopping a

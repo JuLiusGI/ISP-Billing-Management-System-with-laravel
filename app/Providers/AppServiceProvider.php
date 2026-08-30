@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use App\Contracts\ServiceProvisioner;
 use App\Models\Customer;
+use App\Models\Expense;
+use App\Models\ExpenseCategory;
 use App\Models\InternetPlan;
 use App\Models\Invoice;
 use App\Models\Payment;
@@ -12,6 +14,8 @@ use App\Models\Role;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Policies\CustomerPolicy;
+use App\Policies\ExpenseCategoryPolicy;
+use App\Policies\ExpensePolicy;
 use App\Policies\InternetPlanPolicy;
 use App\Policies\InvoicePolicy;
 use App\Policies\PaymentPolicy;
@@ -47,6 +51,8 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Invoice::class, InvoicePolicy::class);
         Gate::policy(Payment::class, PaymentPolicy::class);
         Gate::policy(Receipt::class, ReceiptPolicy::class);
+        Gate::policy(Expense::class, ExpensePolicy::class);
+        Gate::policy(ExpenseCategory::class, ExpenseCategoryPolicy::class);
 
         /*
          * Resolves dot-namespaced abilities ("invoices.create") against the

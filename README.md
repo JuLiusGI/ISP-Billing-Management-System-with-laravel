@@ -5,10 +5,10 @@ with Laravel 12, Blade, Bootstrap 5 and vanilla JavaScript, targeting a local
 XAMPP (Apache + MariaDB/MySQL) stack.
 
 > **Project status: in development.** Authentication, role-based access control,
-> staff user management, customers, internet plans, subscriptions, the billing
-> engine, invoice management, payment processing and receipts are working on
-> the full schema. The remaining modules (expenses, reports, analytics, audit
-> logs and settings) are not implemented yet.
+> staff user management, customers, internet plans, subscriptions, service
+> management, the billing engine, invoice management, payment processing,
+> receipts and expenses are working on the full schema. The remaining modules
+> (reports, analytics, audit logs and settings) are not implemented yet.
 
 ## Requirements
 
@@ -415,6 +415,40 @@ and in print.
 
 The on-screen and printed versions render the same partial, so the two can
 never show different figures.
+
+## Expenses
+
+**Finance → Expenses** records what the ISP spends. Every entry carries a
+category, an amount, a date, how it was paid, and optionally a vendor. References
+run `EXP-YYYY-NNNNNN`, are generated on save and never accepted from input.
+
+The listing filters by category, payment method, free text (reference,
+description, vendor) and a date range. The summary above it — a total plus a
+per-category breakdown with percentage shares — is computed from the **whole
+filtered set**, not the page on screen, so narrowing the dates gives a real
+period figure rather than a page subtotal.
+
+Expenses are archived rather than deleted, and archived entries are excluded
+from every total.
+
+### Categories
+
+**Finance → Expense Categories** maintains the list. Codes are derived from the
+name (`Tower Rental` → `TOWER_RENTAL`) rather than typed.
+
+A category that has expenses filed under it **cannot be deleted** — it is
+retired instead, which removes it from new expenses while leaving historical
+records with a meaningful label. Only an unused category can be deleted
+outright. An expense already filed under a retired category stays editable,
+because being unable to correct a typo on an old record would be worse than the
+tidiness the restriction buys.
+
+Both the expense module and its categories run on the `expenses.*` abilities, so
+accountants maintain their own chart of accounts without needing administrator
+rights. Billing staff and technicians have no access.
+
+Module-level totals live here; the formal Expense Report belongs to the reports
+module.
 
 ## Testing
 

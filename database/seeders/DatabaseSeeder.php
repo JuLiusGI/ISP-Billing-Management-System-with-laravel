@@ -32,6 +32,8 @@ class DatabaseSeeder extends Seeder
             CustomerSeeder::class,
             // Depends on plans and customers already existing.
             SubscriptionSeeder::class,
+            // Depends on ExpenseCategorySeeder having run first.
+            ExpenseSeeder::class,
         ]);
     }
 }
