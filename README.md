@@ -8,8 +8,9 @@ XAMPP (Apache + MariaDB/MySQL) stack.
 > staff user management, customers, internet plans, subscriptions, service
 > management, the billing engine, invoice management, payment processing,
 > receipts, expenses, reports, the analytics dashboard and audit logging are
-> working on the full schema, along with system settings, notifications and
-> automated billing. The final review and documentation passes remain.
+> working on the full schema, along with system settings, notifications,
+> automated billing and the interface refinement pass. The final security
+> review and documentation passes remain.
 
 ## Requirements
 
@@ -482,6 +483,57 @@ Money figures come back from `SUM()` as `0` when there are no rows, which reads
 differently from every other amount on the page, so both the dashboard and the
 report services normalise sums through a `money()` helper using bcmath rather
 than a float cast.
+
+## Interface
+
+Bootstrap 5 themed from `resources/css/app.scss`, dark navy with a red accent.
+Brand colours are Sass variables merged into Bootstrap's `$theme-colors`, so
+`bg-navy` and `text-navy` are generated rather than hand-written. No hex values
+belong in a Blade view.
+
+### Error pages
+
+Friendly pages for 403, 404, 419, 429, 500 and 503. They are **deliberately
+dependency-free** — no sidebar, no JavaScript, and the ISP name read from
+config rather than system settings. An error page has to render when the thing
+it is reporting has already broken, so a 500 caused by an unreachable database
+must not query the database to draw itself.
+
+Each says what happened in plain terms and offers a way out; the 419 page
+offers to sign in again, since that is the only useful next step.
+
+### Accessibility
+
+- **Skip link** to `#main-content`. The sidebar puts dozens of links before the
+  content on every page, so without it reaching the page by keyboard means
+  tabbing past all of them, every time.
+- **`:focus-visible` ring** that survives the Bootstrap reset, switching to
+  white inside the navy sidebar where the blue ring has too little contrast.
+- **`prefers-reduced-motion`** honoured; the sidebar slide is decoration.
+- **Toasts are announced by severity** — an error is `role="alert"` /
+  `aria-live="assertive"` and stays until dismissed, a success is
+  `role="status"` / `aria-live="polite"` and auto-dismisses. A failure that
+  vanishes after five seconds is a failure someone misses.
+- Stat tiles avoid `text-warning`, which is about 1.6:1 against white. Amber
+  stays on badges, where it sits behind dark text.
+
+### Loading and double-submit
+
+Submitting a non-GET form marks its submit buttons `aria-busy` and blocks a
+second submit. It sets a flag on the *form* rather than disabling the button,
+because a disabled submit button is dropped from the request — and some of ours
+carry the value the action depends on, such as the service status buttons that
+post which status was chosen. A test asserts the busy state never sets
+`disabled`.
+
+GET forms are exempt: filters return fast, and a button left spinning after a
+back-navigation would look broken.
+
+### Tables and mobile
+
+Long listings use a sticky header inside their scroll container. Below the
+`sm` breakpoint, table padding tightens to reclaim horizontal room, and the
+sidebar becomes an off-canvas panel that closes on Escape or a backdrop tap.
 
 ## Automated billing
 

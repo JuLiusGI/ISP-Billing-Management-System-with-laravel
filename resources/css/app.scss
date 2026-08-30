@@ -72,6 +72,93 @@ body {
 }
 
 // ---------------------------------------------------------------------------
+// Accessibility
+//
+// The keyboard and screen-reader affordances the interface needs but that no
+// visual review would surface.
+// ---------------------------------------------------------------------------
+
+/*
+ * Skip link. Every page puts the sidebar's several dozen links before the
+ * content, which is a long tab journey on every single page without this.
+ */
+.skip-link {
+  position: absolute;
+  top: -3rem;
+  left: 0.5rem;
+  z-index: 2000;
+  padding: 0.5rem 1rem;
+  background: $isp-navy;
+  color: #fff;
+  border-radius: 0 0 $border-radius $border-radius;
+  transition: top 0.15s ease-in-out;
+
+  &:focus {
+    top: 0;
+    color: #fff;
+  }
+}
+
+/*
+ * A visible focus ring that survives the Bootstrap reset. :focus-visible so it
+ * appears for keyboard users without ringing every mouse click.
+ */
+:focus-visible {
+  outline: 3px solid $isp-blue-bright;
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+// On the navy sidebar the blue ring has too little contrast to find.
+.app-sidebar :focus-visible {
+  outline-color: #fff;
+}
+
+/*
+ * Respect a reduced-motion preference. The sidebar slide and the skip link are
+ * the only real movement in the interface, and both are decoration.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/*
+ * Busy state for a submitted form. Applied by the layout's submit handler so a
+ * slow save cannot be double-submitted, and so the click visibly registered.
+ */
+.btn[aria-busy='true'] {
+  position: relative;
+  color: transparent !important;
+  pointer-events: none;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    color: #fff;
+    animation: spinner-border 0.75s linear infinite;
+  }
+}
+
+.btn-light[aria-busy='true']::after,
+.btn-outline-primary[aria-busy='true']::after {
+  color: $isp-navy;
+}
+
+// ---------------------------------------------------------------------------
 // Application shell: fixed sidebar beside a scrolling main column. Below the
 // lg breakpoint the sidebar slides over the content instead.
 // ---------------------------------------------------------------------------
@@ -273,6 +360,112 @@ body.sidebar-open {
   td {
     vertical-align: middle;
   }
+
+  /*
+   * Sticky header for long listings. Scoped to the scroll container so it only
+   * engages where a table is actually tall enough to lose its header.
+   */
+  thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: $isp-gray-100;
+  }
+}
+
+/*
+ * Caps a long listing so its header stays useful, rather than the page growing
+ * without limit and the columns scrolling off the top.
+ */
+.table-scroll {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+@media (max-width: 575.98px) {
+  // Reclaim horizontal room on a phone, where these tables scroll sideways.
+  .table-app {
+    th,
+    td {
+      padding-left: 0.5rem;
+      padding-right: 0.5rem;
+    }
+  }
+
+  // Full-width action buttons read better than a row of half-width ones.
+  .app-content .btn-toolbar-stack .btn {
+    width: 100%;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Error pages
+// ---------------------------------------------------------------------------
+.error-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 2rem 1rem;
+  background: linear-gradient(160deg, $isp-navy 0%, $isp-navy-deep 100%);
+}
+
+.error-panel {
+  width: 100%;
+  max-width: 32rem;
+  padding: 2.5rem 2rem;
+  text-align: center;
+  background: #fff;
+  border-radius: 0.75rem;
+  border-top: 4px solid $isp-red;
+
+  &__badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3.5rem;
+    height: 3.5rem;
+    margin-bottom: 1rem;
+    border-radius: 50%;
+    background: $isp-gray-100;
+    color: $isp-navy;
+    font-size: 1.5rem;
+  }
+
+  &__code {
+    margin: 0;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    color: $isp-red;
+  }
+
+  &__title {
+    margin: 0.25rem 0 0.75rem;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: $isp-navy;
+  }
+
+  &__message {
+    margin: 0 0 1.5rem;
+    color: $isp-gray-700;
+    font-size: 0.925rem;
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: center;
+  }
+}
+
+.error-footer {
+  margin: 1rem 0 0;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.6);
 }
 
 // ---------------------------------------------------------------------------

@@ -9,6 +9,13 @@
 </head>
 <body class="app-body">
 
+{{--
+    The sidebar puts dozens of links before the content on every page. Without
+    this, reaching the page itself by keyboard means tabbing past all of them,
+    every time.
+--}}
+<a class="skip-link" href="#main-content">Skip to main content</a>
+
 <div class="app-shell">
 
     {{-- Sidebar --------------------------------------------------------- --}}
@@ -338,7 +345,7 @@
             </nav>
         @endif
 
-        <main class="app-content">
+        <main class="app-content" id="main-content" tabindex="-1">
             @yield('content')
         </main>
 
@@ -361,12 +368,60 @@
         }
     });
 
-    // Confirmation for destructive submits.
+    // Close the mobile sidebar on Escape, the same as any other overlay.
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            document.body.classList.remove('sidebar-open');
+        }
+    });
+
     document.addEventListener('submit', (event) => {
-        const message = event.target.dataset.confirm;
+        const form = event.target;
+
+        // Confirmation for destructive submits.
+        const message = form.dataset.confirm;
         if (message && !window.confirm(message)) {
             event.preventDefault();
+            return;
         }
+
+        /*
+         * Busy state. A billing run or a report over a year is slow enough that
+         * an unchanged button reads as a click that did not register, and the
+         * second click submits the form twice.
+         *
+         * Skipped for GET forms — filters return fast, and leaving the button
+         * spinning after a back-navigation restores the page from cache would
+         * look broken.
+         */
+        if ((form.method || '').toLowerCase() === 'get') {
+            return;
+        }
+
+        // Guard the second submit on the form rather than by disabling the
+        // button. A disabled submit button is dropped from the request, and
+        // some of ours carry the name and value the action depends on — the
+        // service status buttons post which status was chosen that way.
+        if (form.dataset.submitting === 'true') {
+            event.preventDefault();
+            return;
+        }
+
+        form.dataset.submitting = 'true';
+
+        form.querySelectorAll('button[type="submit"]').forEach((button) => {
+            button.setAttribute('aria-busy', 'true');
+        });
+    });
+
+    // A page restored from the back/forward cache must not stay busy.
+    window.addEventListener('pageshow', () => {
+        document.querySelectorAll('form[data-submitting]').forEach((form) => {
+            delete form.dataset.submitting;
+        });
+        document.querySelectorAll('[aria-busy="true"]').forEach((button) => {
+            button.removeAttribute('aria-busy');
+        });
     });
 </script>
 @stack('scripts')
