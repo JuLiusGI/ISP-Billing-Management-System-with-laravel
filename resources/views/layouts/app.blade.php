@@ -168,6 +168,27 @@
                                 <i class="bi bi-wifi"></i> Customer Subscriptions
                             </a>
                         </li>
+
+                        @foreach ([
+                            App\Enums\SubscriptionStatus::Active,
+                            App\Enums\SubscriptionStatus::Suspended,
+                            App\Enums\SubscriptionStatus::Expired,
+                        ] as $serviceStatus)
+                            <li class="nav-item">
+                                <a class="nav-link {{ request()->routeIs('services.index') && (request('status', 'active') === $serviceStatus->value) ? 'active' : '' }}"
+                                   href="{{ route('services.index', ['status' => $serviceStatus->value]) }}">
+                                    <i class="bi bi-{{ $serviceStatus->icon() }}"></i>
+                                    {{ $serviceStatus->label() }} Services
+                                </a>
+                            </li>
+                        @endforeach
+
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('services.history') ? 'active' : '' }}"
+                               href="{{ route('services.history') }}">
+                                <i class="bi bi-clock-history"></i> Service History
+                            </a>
+                        </li>
                     @endcan
                 </ul>
             @endcanany

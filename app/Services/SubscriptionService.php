@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Contracts\ServiceProvisioner;
 use App\Enums\CustomerConnectionStatus;
 use App\Enums\SubscriptionStatus;
 use App\Models\InternetPlan;
@@ -11,6 +12,8 @@ use App\Models\User;
 use DomainException;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * Subscription writes and the service status transitions.
@@ -22,6 +25,8 @@ use Illuminate\Support\Facades\DB;
 class SubscriptionService
 {
     private const CODE_ATTEMPTS = 5;
+
+    public function __construct(private readonly ServiceProvisioner $provisioner) {}
 
     /**
      * Creates a subscription, copying the plan's pricing across.
@@ -97,7 +102,7 @@ class SubscriptionService
             );
         }
 
-        return DB::transaction(function () use ($subscription, $from, $target, $reason, $actor, $automatic): Subscription {
+        $subscription = DB::transaction(function () use ($subscription, $from, $target, $reason, $actor, $automatic): Subscription {
             $changes = ['status' => $target];
 
             // Activating for the first time stamps the activation date.
@@ -112,6 +117,40 @@ class SubscriptionService
 
             return $subscription->refresh();
         });
+
+        // Deliberately outside the transaction. Provisioning talks to the
+        // network, and holding row locks open across a device call is how a
+        // slow router turns into a database problem. The status change is
+        // already durable by this point.
+        $this->provision($subscription, $target);
+
+        return $subscription;
+    }
+
+    /**
+     * Pushes the new state to the network.
+     *
+     * Nothing reaches a device until a real driver is bound; the null driver
+     * records what it would have done. A provisioning failure must not undo a
+     * recorded status change, so it is logged rather than thrown.
+     */
+    private function provision(Subscription $subscription, SubscriptionStatus $target): void
+    {
+        try {
+            match ($target) {
+                SubscriptionStatus::Active => $this->provisioner->activate($subscription),
+                SubscriptionStatus::Suspended => $this->provisioner->suspend($subscription),
+                SubscriptionStatus::Cancelled, SubscriptionStatus::Expired => $this->provisioner->terminate($subscription),
+                // Pending has nothing to push: the line was never brought up.
+                SubscriptionStatus::Pending => null,
+            };
+        } catch (Throwable $e) {
+            Log::error('Service provisioning failed after a status change.', [
+                'subscription' => $subscription->subscription_code,
+                'target_status' => $target->value,
+                'exception' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**

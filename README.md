@@ -244,6 +244,47 @@ Two abilities separate the concerns: `subscriptions.update` edits the record
 (pricing, dates, connection details) and `subscriptions.manage_status` changes
 service state. Billing staff hold the first, technicians the second.
 
+## Service management
+
+**Internet Services → Active / Suspended / Expired Services** is the operational
+view of the same subscriptions. Where *Customer Subscriptions* answers "who is
+on what plan, at what price", the service board answers "which lines are up,
+which are cut, and why". Counts across the top make each state one click away,
+and the row actions offer only the transitions the state machine allows.
+
+**Internet Services → Service History** is the status-change audit trail across
+every customer, filterable by target status, date range, customer, and — the
+question asked most often when a disconnection is disputed — whether a person or
+the scheduler made the change.
+
+### The provisioning seam
+
+Enabling or cutting a line is a *side effect* of a status change, not part of
+it, so it sits behind the `App\Contracts\ServiceProvisioner` interface:
+
+```php
+activate(Subscription $s)    // bring the line up
+suspend(Subscription $s)     // take it down, keep the account provisioned
+terminate(Subscription $s)   // remove it from the network
+isEnabled(): bool
+```
+
+`NullServiceProvisioner` is bound by default. It is a working implementation
+rather than a stub: service state is tracked in the database, and every action
+that *would* have gone to the network is written to the log, so the intended
+sequence can be checked against a real device before a driver is trusted with
+it. The service board says plainly that nothing is being pushed to a router.
+
+Two deliberate properties, both covered by tests:
+
+- Provisioning runs **after** the transaction commits. Holding row locks open
+  across a device call is how a slow router becomes a database problem.
+- A provisioning failure is logged, never rethrown. The status change is already
+  durable and drives billing; an unreachable router must not silently undo it.
+
+Adding MikroTik or RADIUS support means writing one class and changing one
+binding in `AppServiceProvider`. No other code moves.
+
 ## Billing engine
 
 Billing runs per month. Opening a cycle for a month creates a `billing_cycles`
@@ -423,3 +464,9 @@ The schema and architecture are being designed so the following can be added
 later without restructuring: MikroTik and RADIUS integration, PPPoE and hotspot
 management, SMS and email notifications, online payment gateways, and automatic
 suspension/reconnection driven by the billing state.
+
+Network integration has its seam already in place — see **Service management**
+above. Automatic suspension has the pieces it needs too: `changeStatus()` takes
+an `automatic` flag that the history view surfaces separately from human
+actions, and the suspension threshold and on/off switch already exist in system
+settings. The scheduled command that drives it is not written yet.

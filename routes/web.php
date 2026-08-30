@@ -12,6 +12,7 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReceiptController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
@@ -86,6 +87,12 @@ Route::middleware(['auth', 'active'])->group(function (): void {
         Route::patch('{subscription}/status', 'changeStatus')
             ->middleware('permission:subscriptions.manage_status')
             ->name('status');
+    });
+
+    // Service management: the operational side of the same subscriptions.
+    Route::controller(ServiceController::class)->prefix('services')->name('services.')->group(function (): void {
+        Route::get('/', 'index')->middleware('permission:subscriptions.view')->name('index');
+        Route::get('history', 'history')->middleware('permission:subscriptions.view')->name('history');
     });
 
     Route::controller(BillingCycleController::class)->prefix('billing')->name('billing.')->group(function (): void {

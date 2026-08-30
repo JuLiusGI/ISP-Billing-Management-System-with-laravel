@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Contracts\ServiceProvisioner;
 use App\Models\Customer;
 use App\Models\InternetPlan;
 use App\Models\Invoice;
@@ -18,6 +19,7 @@ use App\Policies\ReceiptPolicy;
 use App\Policies\RolePolicy;
 use App\Policies\SubscriptionPolicy;
 use App\Policies\UserPolicy;
+use App\Services\Provisioning\NullServiceProvisioner;
 use App\Services\SettingsService;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -29,6 +31,10 @@ class AppServiceProvider extends ServiceProvider
         // Shared for the lifetime of the request so a page that reads a dozen
         // settings runs one query rather than a dozen.
         $this->app->singleton(SettingsService::class);
+
+        // No network integration exists yet. Swapping this binding for a
+        // MikroTik or RADIUS driver is the whole of that change.
+        $this->app->singleton(ServiceProvisioner::class, NullServiceProvisioner::class);
     }
 
     public function boot(): void
