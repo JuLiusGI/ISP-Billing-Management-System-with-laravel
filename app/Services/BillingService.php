@@ -10,6 +10,8 @@ use App\Models\BillingCycle;
 use App\Models\Invoice;
 use App\Models\Subscription;
 use App\Models\User;
+use App\Notifications\InvoiceGenerated;
+use App\Notifications\InvoiceOverdue;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -30,6 +32,7 @@ class BillingService
     public function __construct(
         private readonly InvoiceService $invoices,
         private readonly SettingsService $settings,
+        private readonly CustomerNotifier $notifier,
     ) {}
 
     /**
@@ -106,7 +109,7 @@ class BillingService
 
         $invoiceDate = $this->invoiceDateFor($subscription, $cycle);
 
-        return DB::transaction(function () use ($subscription, $cycle, $invoiceDate, $actor): Invoice {
+        $invoice = DB::transaction(function () use ($subscription, $cycle, $invoiceDate, $actor): Invoice {
             return $this->invoices->create(
                 $subscription->customer,
                 $this->lineItemsFor($subscription),
@@ -122,6 +125,12 @@ class BillingService
                 $actor,
             );
         });
+
+        // After commit: the invoice is issued whether or not the customer can
+        // be told about it.
+        $this->notifier->send($subscription->customer, 'invoice_created', new InvoiceGenerated($invoice));
+
+        return $invoice;
     }
 
     /**
@@ -132,11 +141,30 @@ class BillingService
      */
     public function markOverdueInvoices(): int
     {
-        return Invoice::query()
+        // Read first, then update in one statement. The rows are needed anyway
+        // to tell each customer, and a per-model save would turn one UPDATE
+        // into one per invoice.
+        $invoices = Invoice::query()
+            ->with('customer')
             ->whereIn('status', [InvoiceStatus::Unpaid->value, InvoiceStatus::PartiallyPaid->value])
             ->whereDate('due_date', '<', now()->toDateString())
             ->where('balance_due', '>', 0)
-            ->update(['status' => InvoiceStatus::Overdue]);
+            ->get();
+
+        if ($invoices->isEmpty()) {
+            return 0;
+        }
+
+        Invoice::whereIn('id', $invoices->modelKeys())->update(['status' => InvoiceStatus::Overdue]);
+
+        foreach ($invoices as $invoice) {
+            if ($invoice->customer) {
+                $invoice->status = InvoiceStatus::Overdue;
+                $this->notifier->send($invoice->customer, 'invoice_overdue', new InvoiceOverdue($invoice));
+            }
+        }
+
+        return $invoices->count();
     }
 
     /**

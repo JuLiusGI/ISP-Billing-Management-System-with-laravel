@@ -8,6 +8,7 @@ use App\Models\Invoice;
 use App\Models\Payment;
 use App\Models\PaymentAllocation;
 use App\Models\User;
+use App\Notifications\PaymentReceived;
 use DomainException;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Collection;
@@ -30,7 +31,10 @@ class PaymentService
 {
     private const REFERENCE_ATTEMPTS = 5;
 
-    public function __construct(private readonly InvoiceService $invoices) {}
+    public function __construct(
+        private readonly InvoiceService $invoices,
+        private readonly CustomerNotifier $notifier,
+    ) {}
 
     /**
      * Records a payment and applies it to the given invoices.
@@ -48,7 +52,7 @@ class PaymentService
 
         for ($attempt = 1; ; $attempt++) {
             try {
-                return DB::transaction(function () use ($customer, $attributes, $allocations, $amount, $actor): Payment {
+                $payment = DB::transaction(function () use ($customer, $attributes, $allocations, $amount, $actor): Payment {
                     $payment = Payment::create([
                         'payment_reference' => $this->nextReference(),
                         'customer_id' => $customer->id,
@@ -66,6 +70,16 @@ class PaymentService
 
                     return $payment->refresh();
                 });
+
+                // After commit: the money is recorded whether or not the
+                // acknowledgement reaches the customer.
+                $this->notifier->send(
+                    $customer->refresh(),
+                    'payment_received',
+                    new PaymentReceived($payment),
+                );
+
+                return $payment;
             } catch (UniqueConstraintViolationException $e) {
                 if ($attempt >= self::REFERENCE_ATTEMPTS || ! str_contains($e->getMessage(), 'payment_reference')) {
                     throw $e;

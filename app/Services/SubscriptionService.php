@@ -9,6 +9,8 @@ use App\Models\InternetPlan;
 use App\Models\ServiceStatusLog;
 use App\Models\Subscription;
 use App\Models\User;
+use App\Notifications\ServiceReactivated;
+use App\Notifications\ServiceSuspended;
 use DomainException;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
@@ -26,7 +28,10 @@ class SubscriptionService
 {
     private const CODE_ATTEMPTS = 5;
 
-    public function __construct(private readonly ServiceProvisioner $provisioner) {}
+    public function __construct(
+        private readonly ServiceProvisioner $provisioner,
+        private readonly CustomerNotifier $notifier,
+    ) {}
 
     /**
      * Creates a subscription, copying the plan's pricing across.
@@ -142,8 +147,40 @@ class SubscriptionService
         // slow router turns into a database problem. The status change is
         // already durable by this point.
         $this->provision($subscription, $target);
+        $this->notifyCustomer($subscription, $from, $target, $reason);
 
         return $subscription;
+    }
+
+    /**
+     * Tells the customer their line went down or came back.
+     *
+     * Only these two transitions are worth a message. A move between pending,
+     * expired and cancelled is administrative, and mailing about it trains
+     * people to ignore the ones that matter.
+     */
+    private function notifyCustomer(
+        Subscription $subscription,
+        SubscriptionStatus $from,
+        SubscriptionStatus $target,
+        ?string $reason,
+    ): void {
+        $customer = $subscription->customer;
+
+        if (! $customer) {
+            return;
+        }
+
+        if ($target === SubscriptionStatus::Suspended) {
+            $this->notifier->send($customer, 'service_suspended', new ServiceSuspended($subscription, $reason));
+
+            return;
+        }
+
+        // Reactivation only counts as such coming back from suspension.
+        if ($target === SubscriptionStatus::Active && $from === SubscriptionStatus::Suspended) {
+            $this->notifier->send($customer, 'service_reactivated', new ServiceReactivated($subscription));
+        }
     }
 
     /**

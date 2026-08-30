@@ -15,10 +15,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Notifications\Notifiable;
 
 class Customer extends Model
 {
-    use Auditable, HasFactory, SoftDeletes;
+    // Notifiable so billing and service notices address the customer directly.
+    // Their email is optional, so CustomerNotifier checks for one before
+    // sending rather than every dispatch site remembering to.
+    use Auditable, HasFactory, Notifiable, SoftDeletes;
 
     /** @var list<string> */
     protected $fillable = [
