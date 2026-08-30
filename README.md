@@ -4,13 +4,17 @@ A web-based billing and management system for an Internet Service Provider, buil
 with Laravel 12, Blade, Bootstrap 5 and vanilla JavaScript, targeting a local
 XAMPP (Apache + MariaDB/MySQL) stack.
 
-> **Project status: in development.** Authentication, role-based access control,
-> staff user management, customers, internet plans, subscriptions, service
-> management, the billing engine, invoice management, payment processing,
-> receipts, expenses, reports, the analytics dashboard and audit logging are
-> working on the full schema, along with system settings, notifications,
-> automated billing and the interface refinement pass. The final security
-> review and documentation passes remain.
+> **Project status: feature-complete.** Authentication, role-based access
+> control, staff user management, customers, internet plans, subscriptions,
+> service management, the billing engine, invoice management, payment
+> processing, receipts, expenses, reports, the analytics dashboard, audit
+> logging, system settings, customer notifications, automated billing and the
+> interface refinement pass are all working on the full schema, and the security
+> review has been carried out — see **Security** below.
+>
+> What remains is deliberately out of scope rather than unfinished: the network
+> integrations listed under **Planned integrations**, which have their seams in
+> place and are waiting on hardware to talk to.
 
 ## Requirements
 
@@ -23,8 +27,36 @@ XAMPP (Apache + MariaDB/MySQL) stack.
 | Apache | XAMPP bundled (optional — see below) |
 
 Required PHP extensions: `pdo_mysql`, `mbstring`, `openssl`, `tokenizer`, `xml`,
-`ctype`, `json`, `bcmath`, `fileinfo`, `curl`, `gd`, `zip`. Running the test
-suite also needs `pdo_sqlite`.
+`ctype`, `json`, `bcmath`, `fileinfo`, `curl`, `gd`, `zip`.
+
+`bcmath` is not optional. Every derived monetary figure is computed with it
+rather than with floating-point arithmetic, and the application will fail
+outright without it. The test suite needs no extension beyond this list — it
+runs against MySQL, not SQLite.
+
+## XAMPP setup
+
+The project targets a stock XAMPP install and needs nothing unusual from it.
+
+1. Install XAMPP with PHP 8.2 or newer, and open the **XAMPP Control Panel**.
+2. Start **Apache** and **MySQL**. MySQL here is MariaDB; the application treats
+   them interchangeably.
+3. Confirm the PHP extensions listed above are enabled in
+   `C:\xampp\php\php.ini`. On a default install only `zip` and `gd` are
+   occasionally commented out; `bcmath` must be enabled.
+4. Place the project at `C:\xampp\htdocs\isp-billing-system` (or anywhere else,
+   if you are using the development server rather than Apache).
+
+Two XAMPP-specific traps are worth knowing before they cost an hour:
+
+- **Port 3306 may already be taken.** If MySQL will not start, another MySQL
+  service — often one installed separately — is holding the port. Either stop
+  that service or move XAMPP to another port and set `DB_PORT` to match.
+- **The `mysql` client on `PATH` may not be XAMPP's.** If a standalone MySQL
+  Server is installed alongside XAMPP, its client can shadow XAMPP's while
+  XAMPP's MariaDB owns the port, which produces confusing authentication and
+  collation errors. Call `C:\xampp\mysql\bin\mysql.exe` by full path to be sure
+  which one you are talking to.
 
 ## Installation
 
@@ -88,6 +120,13 @@ mysql -u root -p < database/schema.sql
 npm run build   # production build
 npm run dev     # Vite dev server with hot reload
 ```
+
+> If pages suddenly load without styling, check for a leftover
+> `public/hot`. Vite writes that file while `npm run dev` is running and
+> removes it on a clean exit; an interrupted dev server leaves it behind,
+> and every page then points its CSS and JS at a dev server that is no
+> longer listening. Deleting the file restores the built assets.
+> `ApplicationHealthTest` fails when this happens, which is what it is for.
 
 Bootstrap 5 is themed from `resources/css/app.scss`. Brand colours are declared
 there as Sass variables and merged into Bootstrap's `$theme-colors` **before**
@@ -787,7 +826,9 @@ test that later records a payment non-deterministic.
 | `APP_DEBUG` | Must be `false` in production. |
 | `APP_TIMEZONE` | The ISP's own clock. Defaults to `Asia/Manila`. Invoice dates, billing days and "not in the future" checks all read it, so a server running in UTC would reject same-day payments for part of the day. |
 | `DB_CONNECTION` / `DB_HOST` / `DB_PORT` / `DB_DATABASE` / `DB_USERNAME` / `DB_PASSWORD` | Database connection. |
-| `SESSION_DRIVER`, `CACHE_STORE`, `QUEUE_CONNECTION` | Default to `database`. |
+| `SESSION_DRIVER` / `CACHE_STORE` | Both default to `database`. |
+| `SESSION_SECURE_COOKIE` | Send the session cookie over HTTPS only. `false` for local XAMPP; **`true` in production**. |
+| `QUEUE_CONNECTION` | `database` by default, which means notifications need a running `queue:work`. |
 | `MAIL_*` | Mail transport. Defaults to the `log` driver in development. Password reset needs a working mailer. |
 | `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` | Credentials for the seeded administrator. Change before deployment. |
 
@@ -839,23 +880,103 @@ rather than input. Passwords use the `hashed` cast with `Password::defaults()`.
 ships an empty `APP_KEY`. Session cookie flags are environment-driven: set
 `SESSION_SECURE_COOKIE=true` wherever the app is served over HTTPS.
 
-## Production considerations
+## Deployment
 
-- Set `APP_DEBUG=false` and `APP_ENV=production`.
-- Generate a fresh `APP_KEY`; never reuse the development key.
-- Use a dedicated MySQL user with least privilege instead of `root`.
-- Run `php artisan config:cache route:cache view:cache` and `npm run build`.
-- Serve `public/` as the document root; never expose the project root.
+### Before the first request
+
+```bash
+composer install --no-dev --optimize-autoloader
+npm ci && npm run build
+
+php artisan key:generate          # a fresh key; never reuse the development one
+php artisan migrate --force
+php artisan db:seed --force       # roles, permissions, settings defaults
+php artisan storage:link
+
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+```
+
+Re-run the three `:cache` commands after any change to `.env`, since a cached
+config stops reading the file.
+
+### Environment
+
+- `APP_ENV=production` and `APP_DEBUG=false`. Debug mode renders stack traces
+  containing database credentials to whoever triggered the error.
+- Set `SESSION_SECURE_COOKIE=true` wherever the app is served over HTTPS.
+- `APP_TIMEZONE` must be the ISP's own clock. Invoice dates, billing days and
+  the "not in the future" validation all read it, so a server left on UTC will
+  reject same-day payments for part of every day.
+- Change `SEED_ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD` before seeding, and sign
+  in once to confirm the development accounts documented above do not exist.
+
+### Two processes that must actually be running
+
+Neither of these announces itself when missing. The application keeps serving
+pages and simply stops doing anything on time.
+
+**The scheduler**, or no invoice is ever generated:
+
+```cron
+* * * * * cd /path-to-project && php artisan schedule:run >> /dev/null 2>&1
+```
+
+On Windows, a Task Scheduler entry running `php artisan schedule:run` every
+minute does the same job.
+
+**A queue worker**, or no notification ever leaves the application — they
+implement `ShouldQueue`, so with `QUEUE_CONNECTION=database` they queue up in
+the `jobs` table and wait:
+
+```bash
+php artisan queue:work --tries=3
+```
+
+Run it under a supervisor that restarts it, and restart it on every deploy
+(`php artisan queue:restart`) — a long-running worker holds the old code in
+memory otherwise.
+
+### Server
+
+- Serve `public/` as the document root. Exposing the project root puts `.env`
+  one URL away.
+- `storage/` and `bootstrap/cache/` must be writable by the web server user.
+  Nothing else needs to be.
+- Use a dedicated MySQL user with privileges on the application database only,
+  never `root`.
+- Serve over HTTPS. Sessions and password-reset links are the obvious reasons;
+  the customer data behind them is the real one.
+
+### Backups
+
+The database is the entire system of record — invoices, payments, allocations
+and the audit trail all live there, and financial records are reversed rather
+than deleted precisely so history stays reconstructible. Back it up on a
+schedule and test a restore at least once:
+
+```bash
+mysqldump -u <user> -p isp_billing > isp_billing_$(date +%F).sql
+```
+
+`storage/app/private/` holds customer photos and is the only other directory
+carrying data that is not reproducible from the repository.
 
 ## Planned integrations
 
-The schema and architecture are being designed so the following can be added
-later without restructuring: MikroTik and RADIUS integration, PPPoE and hotspot
-management, SMS and email notifications, online payment gateways, and automatic
-suspension/reconnection driven by the billing state.
+The schema and architecture are built so the following can be added without
+restructuring: MikroTik and RADIUS integration, PPPoE and hotspot management,
+SMS notifications, and online payment gateways.
 
-Network integration has its seam already in place — see **Service management**
-above. Automatic suspension has the pieces it needs too: `changeStatus()` takes
-an `automatic` flag that the history view surfaces separately from human
-actions, and the suspension threshold and on/off switch already exist in system
-settings. The scheduled command that drives it is not written yet.
+**Network integration has its seam in place** — see **Service management**
+above. Every status change already goes through `ServiceProvisioner`, whose
+only implementation today is `NullServiceProvisioner`. A real one is a class
+that implements the contract; no calling code changes.
+
+**Automatic suspension and reconnection are done**, driven by
+`billing:process-service-status` against the threshold and switch in system
+settings — see **Automated billing**. **Email notifications are done** too, and
+are described under **Notifications**. SMS is the piece still outstanding, and
+would slot in beside mail as another channel on the existing notifications
+rather than as new dispatch logic.
